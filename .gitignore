@@ -1,3 +1,8 @@
+# Directories
+build
+bin
+external
+
 # Prerequisites
 *.d
 
