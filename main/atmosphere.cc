@@ -1,6 +1,7 @@
 #include <svg-cpp-plot/svg-cpp-plot.h>
 #include <ivp/ivp.h>
 #include <mj2/tracer/primitives/sphere.h>
+#include "../eq/fermat.h"
 #include <cmath>
 
 int main() {
@@ -10,6 +11,16 @@ int main() {
     float width = 200;
     float height = 100;
     tracer::Sphere earth(Eigen::Vector3f(0,0,0),radius);
+    auto ior = [=] (float x, float y, float z) {
+        float h = std::sqrt(x*x + y*y + z*z) - radius;
+        return 1.0f + 1.e-6*atmosphere_height*std::exp(-0.00012180 * h);
+    };
+    
+    auto dior = [=] (float x, float y, float z) {
+        float h = std::sqrt(x*x + y*y + z*z) - radius;
+        float k = 1.e-6*atmosphere_height*(-0.00012180)*std::exp(-0.00012180 * h)/std::sqrt(x*x+y*y+z*z);
+        return std::array<float,3>{k*x,k*y,k*z};
+    };
     
     //To solve where the origin of the ray is (x,z coordinates) we need to solve an order 2 equation and keep the positive root
     double tana = std::tan(angle);
@@ -24,9 +35,12 @@ int main() {
     
     Eigen::Vector3f origin(x,0,z);
     
+    auto function = fermat(ior,dior);
+//    IVP::Adaptive<IVP::Dopri> method(100,1.e-3);
+    IVP::Euler method(100);
    
     svg_cpp_plot::SVGPlot plt;
-    std::list<float> hits_x, hits_y, nohits_x, nohits_y;
+    std::list<float> hits_x, hits_y, nohits_x, nohits_y, hits_nonlinear_x, hits_nonlinear_y;
     for (float a = (angle-M_PI/180.0); a<=(angle+1.5*M_PI/180.0); a+=M_PI/180.0) {
         tracer::Ray ray(origin,Eigen::Vector3f(-std::sin(a),0,-std::cos(a)));
         if (auto hit = earth.trace(ray)) {
@@ -37,6 +51,25 @@ int main() {
             nohits_x.push_back(point[0]);
             nohits_y.push_back(point[2]);
         }
+        std::list<float> path_x, path_y;
+        Eigen::Array<float,6,1> ini; 
+        ini(Eigen::seq(Eigen::fix<0>,Eigen::fix<2>)) = ray.origin();
+        ini(Eigen::seq(Eigen::fix<3>,Eigen::fix<5>)) = ray.direction();
+        for (auto s : method.steps(function,0.0f,ini,float(radius))) {
+            ray.set_range_max(s.step());
+            if (auto hit = earth.trace(ray)) {
+                hits_nonlinear_x.push_back((*hit).point()[0]);
+                hits_nonlinear_y.push_back((*hit).point()[2]);
+                path_x.push_back(hits_nonlinear_x.back());
+                path_y.push_back(hits_nonlinear_y.back());
+                break;
+            } else {
+                path_x.push_back(s.y()[0]);
+                path_y.push_back(s.y()[2]);
+                ray = tracer::Ray(s.y()(Eigen::seq(Eigen::fix<0>,Eigen::fix<2>)),s.y()(Eigen::seq(Eigen::fix<3>,Eigen::fix<5>)));
+            }
+        }
+        plt.plot(path_x,path_y).color("r").linewidth(0.25);
     }
     
     std::list<float> earth_x, earth_y;
@@ -64,11 +97,12 @@ int main() {
     for (i = nohits_x.begin(), j = nohits_y.begin(); (i != nohits_x.end()) && (j != nohits_y.end()); ++i, ++j)
         plt.plot({x,*i},{z,*j}).color("k").linewidth(0.25);
     
-    plt.scatter(hits_x,hits_y);
-    plt.scatter({x}, {z});
+    plt.scatter(hits_x,hits_y).c("k");
+    plt.scatter(hits_nonlinear_x,hits_nonlinear_y).c("r");
+    plt.scatter({x}, {z}).c("g");;
+    
+    
     
     plt.axis(limits).linewidth(0).xticks({}).yticks({}).figsize({width,height}).savefig("atmosphere.svg");
-//    plt.scatter({x},{-z});
-//    plt.savefig("atmosphere2.svg");
 
 }

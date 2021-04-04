@@ -9,15 +9,17 @@ public:
     Fermat(const IOR& ior, const DIOR& dior) : ior(ior), dior(dior) {}
     
     template<typename Vec6> //First three coordinates x', rest x'' = y'
-    Vec6 operator()(const Vec6& v) const {
+    Vec6 operator()(float l, const Vec6& v) const {
         Vec6 s;
         for (int i = 0; i<3; ++i) s[i] = v[i+3];
         
         auto n = ior(v[0],v[1],v[2]);
         auto dndr = dior(v[0],v[1],v[2]);
-        dndl = dndr[0]*v[4] + dndr[1]*v[5] + dndr[2]*v[6];
+        auto dndl = dndr[0]*v[4] + dndr[1]*v[5] + dndr[2]*v[6];
         for (int i = 0; i<3; ++i)
-            s[i] = (dndr[i] - dndl*v[i+3])/n; 
+            s[i+3] = (dndr[i] - dndl*v[i+3])/n; 
+            
+        std::cerr<<n<<" - "<<dndr[0]<<", "<<dndr[1]<<", "<<dndr[2]<<std::endl;
         return s;
     }
 };
