@@ -1,16 +1,19 @@
 #pragma once
 #include <array>
+#include <eigen/Dense>
 
 template<typename IOR, typename DIOR>
 class Fermat {
     IOR ior;
     DIOR dior;
+    
 public:
     Fermat(const IOR& ior, const DIOR& dior) : ior(ior), dior(dior) {}
     
-    template<typename Vec6> //First three coordinates x', rest x'' = y'
-    Vec6 operator()(float l, const Vec6& v) const {
-        Vec6 s;
+    
+    //First three coordinates x', rest x'' = y'
+    Eigen::Array<float,6,1> operator()(float l, const Eigen::Array<float,6,1>& v) const {
+        Eigen::Array<float,6,1> s;
         for (int i = 0; i<3; ++i) s[i] = v[i+3];
         
         auto n = ior(v[0],v[1],v[2]);
@@ -18,8 +21,7 @@ public:
         auto dndl = dndr[0]*v[4] + dndr[1]*v[5] + dndr[2]*v[6];
         for (int i = 0; i<3; ++i)
             s[i+3] = (dndr[i] - dndl*v[i+3])/n; 
-            
-        std::cerr<<n<<" - "<<dndr[0]<<", "<<dndr[1]<<", "<<dndr[2]<<std::endl;
+
         return s;
     }
 };

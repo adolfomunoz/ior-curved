@@ -36,8 +36,8 @@ int main() {
     Eigen::Vector3f origin(x,0,z);
     
     auto function = fermat(ior,dior);
-//    IVP::Adaptive<IVP::Dopri> method(100,1.e-3);
-    IVP::Euler method(100);
+    IVP::Adaptive<IVP::Dopri> method(100,1.e-3);
+//    IVP::Euler method(100);
    
     svg_cpp_plot::SVGPlot plt;
     std::list<float> hits_x, hits_y, nohits_x, nohits_y, hits_nonlinear_x, hits_nonlinear_y;
@@ -55,7 +55,7 @@ int main() {
         Eigen::Array<float,6,1> ini; 
         ini(Eigen::seq(Eigen::fix<0>,Eigen::fix<2>)) = ray.origin();
         ini(Eigen::seq(Eigen::fix<3>,Eigen::fix<5>)) = ray.direction();
-        for (auto s : method.steps(function,0.0f,ini,float(radius))) {
+        for (auto s : method.steps(function,0.0f,ini,10.0f*float(atmosphere_height))) {
             ray.set_range_max(s.step());
             if (auto hit = earth.trace(ray)) {
                 hits_nonlinear_x.push_back((*hit).point()[0]);
@@ -89,7 +89,7 @@ int main() {
     float d = (limits[3]-limits[2])/32.0;
     limits[0] -= d; limits[1] += d; limits[2] -=d; limits[3] += d;
     
-    plt.plot(earth_x,earth_y);
+    plt.plot(earth_x,earth_y).color("b");
     
     std::list<float>::const_iterator i,j;
     for (i = hits_x.begin(), j = hits_y.begin(); (i != hits_x.end()) && (j != hits_y.end()); ++i, ++j)
