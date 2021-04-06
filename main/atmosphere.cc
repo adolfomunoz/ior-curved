@@ -13,12 +13,12 @@ int main() {
     tracer::Sphere earth(Eigen::Vector3f(0,0,0),radius);
     auto ior = [=] (float x, float y, float z) {
         float h = std::sqrt(x*x + y*y + z*z) - radius;
-        return 1.0f + 1.e-6*atmosphere_height*std::exp(-0.00012180 * h);
+        return 1.0f + 1.e-6*325*std::exp(-0.00012180 * h);
     };
     
     auto dior = [=] (float x, float y, float z) {
         float h = std::sqrt(x*x + y*y + z*z) - radius;
-        float k = 1.e-6*atmosphere_height*(-0.00012180)*std::exp(-0.00012180 * h)/std::sqrt(x*x+y*y+z*z);
+        float k = 1.e-6*325*(-0.00012180)*std::exp(-0.00012180 * h)/std::sqrt(x*x+y*y+z*z);
         return std::array<float,3>{k*x,k*y,k*z};
     };
     
@@ -93,10 +93,10 @@ int main() {
     
     std::list<float>::const_iterator i,j;
     for (i = hits_x.begin(), j = hits_y.begin(); (i != hits_x.end()) && (j != hits_y.end()); ++i, ++j)
-        plt.plot({x,*i},{z,*j}).color("k").linewidth(0.25);
+        plt.plot({x,*i},{z,*j}).color("k").linewidth(0.25).format("--");
     for (i = nohits_x.begin(), j = nohits_y.begin(); (i != nohits_x.end()) && (j != nohits_y.end()); ++i, ++j)
-        plt.plot({x,*i},{z,*j}).color("k").linewidth(0.25);
-    
+        plt.plot({x,*i},{z,*j}).color("k").linewidth(0.25).format("--");
+        
     plt.scatter(hits_x,hits_y).c("k");
     plt.scatter(hits_nonlinear_x,hits_nonlinear_y).c("r");
     plt.scatter({x}, {z}).c("g");;
