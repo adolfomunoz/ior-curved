@@ -3,10 +3,11 @@
 #include <mj2/tracer/primitives/sphere.h>
 #include "../eq/fermat.h"
 #include <cmath>
+#include <string>
 
-int main() {
+int main(int argc, char** argv) {
     const double radius = 6370949;
-    const double angle = 88*M_PI/180.0;
+    double angle = 88*M_PI/180.0;
     const double atmosphere_height = 325000;
     float width = 200;
     float height = 100;
@@ -21,9 +22,13 @@ int main() {
         float k = 1.e-6*325*(-0.00012180)*std::exp(-0.00012180 * h)/std::sqrt(x*x+y*y+z*z);
         return std::array<float,3>{k*x,k*y,k*z};
     };
+
+    for (int i = 0; i<(argc-1); ++i) {
+        if (std::string(argv[i]) == "-angle") angle = atof(argv[++i])*M_PI/180.0;
+    }
     
     //To solve where the origin of the ray is (x,z coordinates) we need to solve an order 2 equation and keep the positive root
-    double tana = std::tan(angle);
+    double tana = std::tan(angle+M_PI/180.0);
     double tana2 = tana*tana;
     
     double a = tana2 + 1;

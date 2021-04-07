@@ -1,6 +1,6 @@
 #pragma once
 #include <array>
-#include <eigen/Dense>
+#include <Eigen/Dense>
 
 template<typename IOR, typename DIOR>
 class Fermat {
@@ -13,6 +13,7 @@ public:
     
     //First three coordinates x', rest x'' = y'
     Eigen::Array<float,6,1> operator()(float l, const Eigen::Array<float,6,1>& v) const {
+//        std::cerr<<v.transpose()<<" -> ";
         Eigen::Array<float,6,1> s;
         for (int i = 0; i<3; ++i) s[i] = v[i+3];
         
@@ -22,6 +23,7 @@ public:
         for (int i = 0; i<3; ++i)
             s[i+3] = (dndr[i] - dndl*v[i+3])/n; 
 
+//        std::cerr<<s.transpose()<<std::endl;
         return s;
     }
 };
