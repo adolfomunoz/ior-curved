@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
     }
     
     //To solve where the origin of the ray is (x,z coordinates) we need to solve an order 2 equation and keep the positive root
-    double tana = std::tan(angle+M_PI/180.0);
+    double tana = std::tan(angle);
     double tana2 = tana*tana;
     
     double a = tana2 + 1;
@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
         Eigen::Array<float,6,1> ini; 
         ini(Eigen::seq(Eigen::fix<0>,Eigen::fix<2>)) = ray.origin();
         ini(Eigen::seq(Eigen::fix<3>,Eigen::fix<5>)) = ray.direction();
-        for (auto s : method.steps(function,0.0f,ini,10.0f*float(atmosphere_height))) {
+        for (auto s : method.steps(function,0.0f,ini,4.0f*float(atmosphere_height))) {
             ray.set_range_max(s.step());
             if (auto hit = earth.trace(ray)) {
                 hits_nonlinear_x.push_back((*hit).point()[0]);
@@ -71,6 +71,7 @@ int main(int argc, char** argv) {
             } else {
                 path_x.push_back(s.y()[0]);
                 path_y.push_back(s.y()[2]);
+                if (std::abs(s.y()[1])>1.e-2) std::cerr<<"Warning : displacement in y :"<<s.y()[1]<<std::endl;
                 ray = tracer::Ray(s.y()(Eigen::seq(Eigen::fix<0>,Eigen::fix<2>)),s.y()(Eigen::seq(Eigen::fix<3>,Eigen::fix<5>)));
             }
         }

@@ -19,7 +19,7 @@ public:
         
         auto n = ior(v[0],v[1],v[2]);
         auto dndr = dior(v[0],v[1],v[2]);
-        auto dndl = dndr[0]*v[4] + dndr[1]*v[5] + dndr[2]*v[6];
+        auto dndl = dndr[0]*v[3] + dndr[1]*v[4] + dndr[2]*v[5];
         for (int i = 0; i<3; ++i)
             s[i+3] = (dndr[i] - dndl*v[i+3])/n; 
 
