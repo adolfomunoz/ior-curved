@@ -132,8 +132,34 @@ int main(int argc, char** argv) {
     plt.scatter(hits_nonlinear_x,hits_nonlinear_y).c("r"); // Plot point where curved ray intersect Earth
     plt.scatter({x}, {z}).c("g"); // Plot origin of the rays
 
+    /** Print hit information */
+    printf("Origin of rays: %f,%f\n", x, z);
+    // Straight rays
+    int hits = hits_x.size();
+    printf("Hits: %d\n", hits);
+    for (int i = 0; i < hits; i++) {
+        double hit_x, hit_y;
+        hit_x = hits_x.back();
+        hit_y = hits_y.back();
+        printf("Hit: %f,%f (rho: %f)\n", hit_x, hit_y, std::sqrt(hit_x * hit_x));
+        hits_x.pop_back();
+        hits_y.pop_back();
+    }
+    // Curved rays
+    hits = hits_nonlinear_x.size();
+    printf("Curved hits: %d\n", hits);
+    for (int i = 0; i < hits; i++) {
+        double hit_x, hit_y;
+        hit_x = hits_nonlinear_x.back();
+        hit_y = hits_nonlinear_y.back();
+        printf("Curved hit: %f,%f (rho: %f)\n", hit_x, hit_y, std::sqrt(hit_x * hit_x));
+        hits_nonlinear_x.pop_back();
+        hits_nonlinear_y.pop_back();
+    }
 
     // Create figure and save it.
-    plt.axis(limits).linewidth(0).xticks({}).yticks({}).figsize({width,height}).savefig("atmosphere.svg");
+    plt.axis(limits).linewidth(0).xticks({}).yticks({}).figsize({width,height}).savefig("rho_graph.svg");
 
 }
+
+
