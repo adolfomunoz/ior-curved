@@ -9,7 +9,7 @@ int main(int argc, char** argv) {
     /** Parameters */
     // Plot
     float width = 200;
-    float height = 100;
+    float height = 50;
 
     // Rays
     double angle = 88*M_PI/180.0; // Zenith angle to radians
@@ -43,28 +43,31 @@ int main(int argc, char** argv) {
 
     double a = tana2 + 1;
     double b = -2.0f*radius*tana2;
-    double c = radius*radius*tana2 - (radius+height)*(radius+atmosphere_height);
+    double c = radius*radius*tana2 - (radius+atmosphere_height)*(radius+atmosphere_height);
 
     float z = (-b + std::sqrt(b*b - 4.0f*a*c))/(2*a);
     float x = (z-radius)*tana;
 
     Eigen::Vector3f origin(x,0,z);
+    float distance = std::sqrt((z-radius)*(z-radius)+(x-0)*(x-0)); // distance from origin to north pole
+    printf("Distance Origin-North: %f km\n", distance);
 
     auto function = fermat(ior,dior);
     IVP::Adaptive<IVP::Dopri> method(100,1.e-3); // (Pasos inicialmente, tolerancia)
+    //IVP::Dopri method(100);
 //    IVP::Euler method(100);
 
     /** Cherenkov cone */
     // For -1, 0 and 1 angles
-    double omega_ch = std::acos(1/ior(x,0,z))*M_PI/180.0; //arccos(1/ior)
+    double omega_ch = 88*M_PI/180.0; //std::acos(1/ior(x,0,z))*M_PI/180.0; //arccos(1/ior)
     for (int i = 0; i<(argc-1); ++i) { // Custom angle as argument
         if (std::string(argv[i]) == "-omega_ch") omega_ch = atof(argv[++i])*M_PI/180.0;
     }
+    printf("omega_ch: %f degrees\n", omega_ch*(180/M_PI));
 
     /** Plotting */
     svg_cpp_plot::SVGPlot plt;
     std::list<float> hits_x, hits_y, nohits_x, nohits_y, hits_nonlinear_x, hits_nonlinear_y;
-    printf("omega_ch: %f degrees\n", omega_ch*(180/M_PI));
     for (float a = (angle-omega_ch); a<=(angle+1.5*omega_ch); a+=omega_ch) {
         tracer::Ray ray(origin,Eigen::Vector3f(-std::sin(a),0,-std::cos(a)));
         // Trace ray towards the Earth
@@ -81,7 +84,7 @@ int main(int argc, char** argv) {
         ini(Eigen::seq(Eigen::fix<0>,Eigen::fix<2>)) = ray.origin();
         ini(Eigen::seq(Eigen::fix<3>,Eigen::fix<5>)) = ray.direction();
         // Trace curved ray towards de Earth
-        for (auto s : method.steps(function,0.0f,ini,8.0f*float(atmosphere_height))) {
+        for (auto s : method.steps(function,0.0f,ini,1.5f*distance)) {//1.0f*float(atmosphere_height))) {
             ray.set_range_max(s.step());
             if (auto hit = earth.trace(ray)) {
                 hits_nonlinear_x.push_back((*hit).point()[0]);
@@ -134,6 +137,7 @@ int main(int argc, char** argv) {
 
 
     // Create figure and save it.
+    printf("Creating figure...");
     plt.axis(limits).linewidth(0).xticks({}).yticks({}).figsize({width,height}).savefig("atmosphere.svg");
 
 }
