@@ -9,7 +9,7 @@ int main(int argc, char** argv) {
     /** Parameters */
     // Plot
     float width = 200;
-    float height = 50;
+    float height =200;
 
     // Rays
     double angle = 88*M_PI/180.0; // Zenith angle to radians
@@ -21,7 +21,7 @@ int main(int argc, char** argv) {
     // Scene
     const double radius = 6370949; // Earth radius
     tracer::Sphere earth(Eigen::Vector3f(0,0,0),radius);
-    double atmosphere_height = -10+12/cos(angle); // Km
+    double atmosphere_height = 325000; //-10+12/cos(angle); // m
     for (int i = 0; i<(argc-1); ++i) { // Custom angle as argument
         if (std::string(argv[i]) == "-height") atmosphere_height = atof(argv[++i]);
     }
@@ -55,7 +55,8 @@ int main(int argc, char** argv) {
     auto function = fermat(ior,dior);
     IVP::Adaptive<IVP::Dopri> method(100,1.e-3); // (Pasos inicialmente, tolerancia)
     //IVP::Dopri method(100);
-//    IVP::Euler method(100);
+    //IVP::Euler method(5000);
+    //IVP::Adaptive<IVP::RungeKutta2> method(100,1.e-8, 0.0001);
 
     /** Cherenkov cone */
     // For -1, 0 and 1 angles
@@ -69,7 +70,8 @@ int main(int argc, char** argv) {
     svg_cpp_plot::SVGPlot plt;
     std::list<float> hits_x, hits_y, nohits_x, nohits_y, hits_nonlinear_x, hits_nonlinear_y;
     for (float a = (angle-omega_ch); a<=(angle+1.5*omega_ch); a+=omega_ch) {
-        tracer::Ray ray(origin,Eigen::Vector3f(-std::sin(a),0,-std::cos(a)));
+    //for (float a = angle; a <= angle*1.5; a += angle) {
+        tracer::Ray ray(origin, Eigen::Vector3f(-std::sin(a), 0, -std::cos(a)));
         // Trace ray towards the Earth
         if (auto hit = earth.trace(ray)) {
             hits_x.push_back((*hit).point()[0]);
@@ -80,11 +82,11 @@ int main(int argc, char** argv) {
             nohits_y.push_back(point[2]);
         }
         std::list<float> path_x, path_y;
-        Eigen::Array<float,6,1> ini;
-        ini(Eigen::seq(Eigen::fix<0>,Eigen::fix<2>)) = ray.origin();
-        ini(Eigen::seq(Eigen::fix<3>,Eigen::fix<5>)) = ray.direction();
+        Eigen::Array<float, 6, 1> ini;
+        ini(Eigen::seq(Eigen::fix<0>, Eigen::fix<2>)) = ray.origin();
+        ini(Eigen::seq(Eigen::fix<3>, Eigen::fix<5>)) = ray.direction();
         // Trace curved ray towards de Earth
-        for (auto s : method.steps(function,0.0f,ini,1.5f*distance)) {//1.0f*float(atmosphere_height))) {
+        for (auto s : method.steps(function, 0.0f, ini, 1.5f * distance)) {//1.0f*float(atmosphere_height))) {
             ray.set_range_max(s.step());
             if (auto hit = earth.trace(ray)) {
                 hits_nonlinear_x.push_back((*hit).point()[0]);
@@ -95,12 +97,14 @@ int main(int argc, char** argv) {
             } else {
                 path_x.push_back(s.y()[0]);
                 path_y.push_back(s.y()[2]);
-                if (std::abs(s.y()[1])>1.e-2) std::cerr<<"Warning : displacement in y :"<<s.y()[1]<<std::endl;
-                ray = tracer::Ray(s.y()(Eigen::seq(Eigen::fix<0>,Eigen::fix<2>)),s.y()(Eigen::seq(Eigen::fix<3>,Eigen::fix<5>)));
+                if (std::abs(s.y()[1]) > 1.e-2) std::cerr << "Warning : displacement in y :" << s.y()[1] << std::endl;
+                ray = tracer::Ray(s.y()(Eigen::seq(Eigen::fix<0>, Eigen::fix<2>)),
+                                  s.y()(Eigen::seq(Eigen::fix<3>, Eigen::fix<5>)));
             }
         }
         // Plot curved ray from origin towards Earth
         plt.plot(path_x,path_y).color("r").linewidth(0.25);
+        //plt.scatter(path_x,path_y).c("r").s(0.2);
     }
 
     // Plot Earth
@@ -109,7 +113,7 @@ int main(int argc, char** argv) {
         earth_x.push_back(radius*std::sin(a));
         earth_y.push_back(radius*std::cos(a));
     }
-    plt.plot(earth_x,earth_y).color("b");
+    plt.plot(earth_x,earth_y).color("b").linewidth(0.1);
 
     // Get the limits of the plot
     float min_x = *(std::min_element(hits_x.begin(),hits_x.end()));

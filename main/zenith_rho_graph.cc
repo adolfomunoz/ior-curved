@@ -38,9 +38,9 @@ int main(int argc, char** argv) {
 
     float min_zenith = 80 ;
     float max_zenith = 90 ;
-    float zenith_step = 0.15 ;
+    float zenith_step = 0.17 ;
     std::list<float> zeniths, rhos, rhos_c;
-    Eigen::Array<std::list<float>,3,1> rhos_z, rhos_zc;
+    Eigen::Array<std::list<float>,3,1> rhos_z, rhos_zc, rhos_diff;
     for (float ze = min_zenith; ze < max_zenith; ze += zenith_step) {
         printf("\nZenith: %f\n", ze);
         float zenith = ze * M_PI/180;
@@ -68,7 +68,7 @@ int main(int argc, char** argv) {
         auto function = fermat(ior,dior);
         IVP::Adaptive<IVP::Dopri> method(100,1.e-3); // (Pasos inicialmente, tolerancia)
         //IVP::Dopri method(100);
-    //    IVP::Euler method(100);
+        //    IVP::Euler method(100);
 
         /** Cherenkov cone */
         // For -1, 0 and 1 angles
@@ -80,11 +80,13 @@ int main(int argc, char** argv) {
 
         int i = 0;
         for (float angle = (zenith-omega_ch); angle<=(zenith+1.5*omega_ch); angle+=omega_ch) {
+            bool isHit = false;
             printf("Angle: %f\n", angle);
             std::list<float> hits_x, hits_y, hits_nonlinear_x, hits_nonlinear_y;
             tracer::Ray ray(origin, Eigen::Vector3f(-std::sin(angle), 0, -std::cos(angle)));
             // Trace ray towards the Earth
             if (auto hit = earth.trace(ray)) {
+                isHit = true;
                 hits_x.push_back((*hit).point()[0]);
                 hits_y.push_back((*hit).point()[2]);
                 float rho = std::sqrt(((*hit).point()[0] * (*hit).point()[0]));
@@ -100,13 +102,14 @@ int main(int argc, char** argv) {
             for (auto s : method.steps(function, 0.0f, ini, 1.5f * distance)) {//1.0f*float(atmosphere_height))) {
                 ray.set_range_max(s.step());
                 if (auto hit = earth.trace(ray)) {
+                    isHit = true;
                     hits_nonlinear_x.push_back((*hit).point()[0]);
                     hits_nonlinear_y.push_back((*hit).point()[2]);
                     float rho = std::sqrt(((*hit).point()[0] * (*hit).point()[0]));
                     rhos_c.push_back(rho);
                     rhos_zc[i].push_back(rho);
-                    printf("Hit (rho: %f)\n",rho);
-                    //printf("Curved hit: %f,%f (rho: %f)\n", (*hit).point()[0], (*hit).point()[2], rho);
+                    //printf("Hit Curved (rho: %f)\n",rho);
+                    //printf("Hit Curved: %f,%f (rho: %f)\n", (*hit).point()[0], (*hit).point()[2], rho);
                     break;
                 } else {
                     if (std::abs(s.y()[1]) > 1.e-2)
@@ -115,6 +118,12 @@ int main(int argc, char** argv) {
                                       s.y()(Eigen::seq(Eigen::fix<3>, Eigen::fix<5>)));
                 }
             }
+            if (isHit) {
+                rhos_diff[i].push_back(rhos_zc[i].back() - rhos_z[i].back());
+            } else {
+                rhos_diff[i].push_back(-10000);
+            }
+
             i++;
         }
     }
@@ -135,11 +144,27 @@ int main(int argc, char** argv) {
     plt.scatter(zeniths,rhos_zc[1]).c("g"); // 0
     plt.scatter(zeniths,rhos_zc[2]).c("b"); // 1
 
-
-    //plt.scatter(zeniths,rhos_c).c("b");
     plt.xlabel("Zenith (degrees)\n");
     plt.ylabel("Distance from hit to Z axis\n\n");
     plt.title("Red: -1 | Green: 0 | Blue: +1 | Continuous: Curved ");
-    plt.linewidth(0).savefig("rho_graph.svg");
+    float max_y = *(std::max_element(rhos_zc[0].begin(),rhos_zc[0].end()));
+    std::array<float,4> limits{79.5,90.5,0,max_y+100};
+    plt.axis(limits).linewidth(0.5).savefig("rho_graph.svg");
+
+    printf("Creating diff figure...");
+    svg_cpp_plot::SVGPlot plt_diff;
+    plt_diff.plot(zeniths, rhos_diff[0]).linestyle("-").color( "r").linewidth(1);
+    plt_diff.plot(zeniths, rhos_diff[1]).linestyle("-").color( "g").linewidth(1);
+    plt_diff.plot(zeniths, rhos_diff[2]).linestyle("-").color( "b").linewidth(1);
+    plt_diff.scatter(zeniths,rhos_diff[0]).c("r"); // -1
+    plt_diff.scatter(zeniths,rhos_diff[1]).c("g"); // 0
+    plt_diff.scatter(zeniths,rhos_diff[2]).c("b"); // 1
+
+    plt_diff.xlabel("Zenith (degrees)\n");
+    plt_diff.ylabel("Difference of rho between straight and curved");
+    plt_diff.title("Red: -1 | Green: 0 | Blue: +1 ");
+    max_y = *(std::max_element(rhos_diff[1].begin(),rhos_diff[1].end()));
+    limits = {79.5,90.5,0,max_y+100};
+    plt_diff.axis(limits).linewidth(0.5).savefig("rho_graph_diff.svg");
 
 }

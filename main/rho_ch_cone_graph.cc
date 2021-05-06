@@ -57,7 +57,7 @@ int main(int argc, char** argv) {
     auto function = fermat(ior,dior);
     IVP::Adaptive<IVP::Dopri> method(100,1.e-3); // (Initial steps, tolerance)
     //IVP::Dopri method(100);
-    //    IVP::Euler method(100);
+    //IVP::Euler method(5000);
 
     /** Cherenkov cone */
     // For -1, 0 and 1 angles
@@ -67,12 +67,13 @@ int main(int argc, char** argv) {
     }
     printf("omega_ch: %f degrees\n", omega_ch*(180/M_PI));
 
-    std::list<float> zeniths, omegas, omegas_c, rhos, rhos_c;
-    Eigen::Array<std::list<float>,3,1> rhos_z, rhos_zc;
-    float angle_step = 0.05 * M_PI/180.0;
+    std::list<float> zeniths, angles, omegas, omegas_c, rhos, rhos_c, rhos_diff;
+    float angle_step = 0.03 * M_PI/180.0;
     int i = 0;
-    for (float a = (angle-omega_ch); a<=(angle+1.1*omega_ch); a+=angle_step) {
+    for (float a = (angle-omega_ch); a<=(angle+omega_ch+0.9*angle_step); a+=angle_step) {
+        printf("Angle: %f\n", a * (180/M_PI));
         zeniths.push_back(a *(180/M_PI));
+        angles.push_back(((angle*(180/M_PI)) - (a *(180/M_PI))) / (omega_ch*(180/M_PI)));
         std::list<float> hits_x, hits_y, hits_nonlinear_x, hits_nonlinear_y;
         tracer::Ray ray(origin, Eigen::Vector3f(-std::sin(a), 0, -std::cos(a)));
         // Trace ray towards the Earth
@@ -117,9 +118,14 @@ int main(int argc, char** argv) {
                                   s.y()(Eigen::seq(Eigen::fix<3>, Eigen::fix<5>)));
             }
         }
+
+        rhos_diff.push_back(rhos_c.back() - rhos.back());
         i++;
     }
 
+    /**
+    * Figure 1: Graph with the angle to the Z axis (X axis) and the distance to the Z axis (Y axis)
+    */
     printf("Creating Zenith figure...\n");
     svg_cpp_plot::SVGPlot plt_zenith;
     plt_zenith.plot(zeniths, rhos).linestyle("-").color( "r").linewidth(1);
@@ -131,21 +137,72 @@ int main(int argc, char** argv) {
     plt_zenith.xlabel("Zenith (degrees)\n");
     plt_zenith.ylabel("Distance from hit to Z axis\n\n");
     plt_zenith.title("Red: Hits of straight rays | Blue: Hits of curved rays");
-    plt_zenith.linewidth(1).savefig("rho_ch_cone_zenith.svg");
+    float min_x = *(std::min_element(zeniths.begin(),zeniths.end()));
+    float min_y = *(std::min_element(rhos.begin(),rhos.end()));
+    float max_x = *(std::max_element(zeniths.begin(),zeniths.end()));
+    float max_y = *(std::max_element(rhos.begin(),rhos.end()));
+    std::array<float,4> limits{min_x,max_x,min_y,max_y};
+    plt_zenith.axis(limits).linewidth(1).savefig("rho_ch_cone_zenith.svg");
 
-
+    /**
+     * Figure 2: Graph with the ray (-1, 0, 1) (X axis) and angle to the normal (Y axis)
+     */
     printf("Creating Normal figure...\n");
     svg_cpp_plot::SVGPlot plt_normal;
-    plt_normal.plot(omegas, rhos).linestyle("-").color( "r").linewidth(1);
-    plt_normal.scatter(omegas,rhos).c("r").s(2).alpha(0.5);
-    plt_normal.plot(omegas_c, rhos_c).linestyle("-").color( "b").linewidth(1);
-    plt_normal.scatter(omegas_c,rhos_c).c("b").s(2).alpha(0.5);
-    plt_normal.plot({zeniths.front(),zeniths.back()}, {0,0}).linestyle("-").color( "k").linewidth(1);
+    plt_normal.plot(angles, omegas).linestyle("-").color( "r").linewidth(1);
+    plt_normal.scatter(angles,omegas).c("r").s(2).alpha(0.5);
+    plt_normal.plot(angles, omegas_c).linestyle("-").color( "b").linewidth(1);
+    plt_normal.scatter(angles,omegas_c).c("b").s(2).alpha(0.5);
+    plt_normal.plot({angles.front(),angles.back()}, {0,0}).linestyle("-").color( "k").linewidth(1);
 
-    plt_normal.xlabel("Angle to the normal (degrees)\n");
-    plt_normal.ylabel("Distance from hit to Z axis\n\n");
-    plt_normal.title("Red: Hits of straight rays | Blue: Hits of curved rays");
-    plt_normal.linewidth(1).savefig("rho_ch_cone_normal.svg");
+    plt_normal.xlabel("Cherenkov ray\n");
+    plt_normal.ylabel("Angle to the normal (degrees)\n\n");
+    plt_normal.title("Red: Hits of straight rays | Blue: Hits of curved rays\n");
+    min_x = *(std::min_element(angles.begin(),angles.end()));
+    min_y = *(std::min_element(omegas.begin(),omegas.end()));
+    max_x = *(std::max_element(angles.begin(),angles.end()));
+    max_y = *(std::max_element(omegas.begin(),omegas.end()));
+    limits = {min_x,max_x,min_y,max_y};
+    plt_normal.axis(limits).linewidth(1).savefig("rho_ch_cone_normal.svg");
+
+    /**
+     * Figure 3: Graph with angle to the Z axis (X axis) and difference between rays of the distance to the
+     * Z axis (rho) (Y axis)
+     */
+    printf("Creating Zenith Diff figure...\n");
+    svg_cpp_plot::SVGPlot plt_zenith_d;
+    plt_zenith_d.plot(zeniths, rhos_diff).linestyle("-").color( "r").linewidth(1);
+    plt_zenith_d.scatter(zeniths,rhos_diff).c("r").s(2).alpha(0.5);
+    plt_zenith_d.plot({zeniths.front(),zeniths.back()}, {0,0}).linestyle("-").color( "k").linewidth(1);
+
+    plt_zenith_d.xlabel("Zenith (degrees)\n");
+    plt_zenith_d.ylabel("Difference of rho between straight and curved");
+    min_x = *(std::min_element(zeniths.begin(),zeniths.end()));
+    min_y = *(std::min_element(rhos_diff.begin(),rhos_diff.end()));
+    max_x = *(std::max_element(zeniths.begin(),zeniths.end()));
+    max_y = *(std::max_element(rhos_diff.begin(),rhos_diff.end()));
+    limits = {min_x,max_x,min_y,max_y};
+    plt_zenith_d.axis(limits).linewidth(1).savefig("rho_ch_cone_zenith_diff.svg");
+
+    /**
+     * Figure 4: Graph with angle to the normal (X axis) and distance to the Z axis (rho) (Y axis)
+     */
+    printf("Creating Normal 2 figure...\n");
+    svg_cpp_plot::SVGPlot plt_normal_2;
+    plt_normal_2.plot(omegas, rhos).linestyle("-").color( "r").linewidth(1);
+    plt_normal_2.scatter(omegas,rhos).c("r").s(2).alpha(0.5);
+    plt_normal_2.plot(omegas_c, rhos_c).linestyle("-").color( "b").linewidth(1);
+    plt_normal_2.scatter(omegas_c,rhos_c).c("b").s(2).alpha(0.5);
+    plt_normal_2.plot({omegas.front(),omegas.back()}, {0,0}).linestyle("-").color( "k").linewidth(1);
+
+    plt_normal_2.xlabel("Angle to the normal (degrees)\n");
+    plt_normal_2.ylabel("Distance to the Z axis");
+    min_x = *(std::min_element(omegas.begin(),omegas.end()));
+    min_y = *(std::min_element(rhos.begin(),rhos.end()));
+    max_x = *(std::max_element(omegas.begin(),omegas.end()));
+    max_y = *(std::max_element(rhos.begin(),rhos.end()));
+    limits = {min_x,max_x,min_y,max_y};
+    plt_normal_2.axis(limits).linewidth(1).savefig("rho_ch_cone_normal_2.svg");
 
 
 }
