@@ -21,11 +21,7 @@ int main(int argc, char** argv) {
     // Scene
     const double radius = 6370949; // Earth radius
     tracer::Sphere earth(Eigen::Vector3f(0,0,0),radius);
-    double atmosphere_height = 325000; //-10+12/cos(angle); // m
-    for (int i = 0; i<(argc-1); ++i) { // Custom angle as argument
-        if (std::string(argv[i]) == "-height") atmosphere_height = atof(argv[++i]);
-    }
-    printf("Atmosphere height: %f km\n", atmosphere_height);
+
     auto ior = [=] (float x, float y, float z) { // Index of Refraction
         float h = std::sqrt(x*x + y*y + z*z) - radius; // h = zv
         return 1.0f + 1.e-6*325*std::exp(-0.00012180 * h);
@@ -38,25 +34,19 @@ int main(int argc, char** argv) {
 
     /** Get atmosphere border (origin of the ray) from the Earth with the zenith angle */
     //To solve where the origin of the ray is (x,z coordinates) we need to solve an order 2 equation and keep the positive root
-    double tana = std::tan(angle);
-    double tana2 = tana*tana;
+    float distance = (-10 + 12 / std::cos(angle)) * 1000; // x1000 km -> m
+    float x = distance * std::sin(angle);
+    float z = ( distance * std::cos(angle) ) + radius;
+    float atmosphere_height = std::sqrt(x*x + z*z) - radius;
 
-    double a = tana2 + 1;
-    double b = -2.0f*radius*tana2;
-    double c = radius*radius*tana2 - (radius+atmosphere_height)*(radius+atmosphere_height);
-
-    float z = (-b + std::sqrt(b*b - 4.0f*a*c))/(2*a);
-    float x = (z-radius)*tana;
-
+    printf("Origin of rays: %f,%f\n", x, z);
     Eigen::Vector3f origin(x,0,z);
-    float distance = std::sqrt((z-radius)*(z-radius)+(x-0)*(x-0)); // distance from origin to north pole
-    printf("Distance Origin-North: %f km\n", distance);
+    printf("Distance Origin-North: %f m\n", distance);
+    printf("Atmosphere height: %f m\n", atmosphere_height);
 
     auto function = fermat(ior,dior);
-    IVP::Adaptive<IVP::Dopri> method(100,1.e-3); // (Pasos inicialmente, tolerancia)
-    //IVP::Dopri method(100);
-    //IVP::Euler method(5000);
-    //IVP::Adaptive<IVP::RungeKutta2> method(100,1.e-8, 0.0001);
+    //IVP::Adaptive<IVP::Dopri> method(100,1.e-3); // (Pasos inicialmente, tolerancia)
+    IVP::RungeKutta2 method(2000.0f);
 
     /** Cherenkov cone */
     // For -1, 0 and 1 angles
@@ -86,7 +76,7 @@ int main(int argc, char** argv) {
         ini(Eigen::seq(Eigen::fix<0>, Eigen::fix<2>)) = ray.origin();
         ini(Eigen::seq(Eigen::fix<3>, Eigen::fix<5>)) = ray.direction();
         // Trace curved ray towards de Earth
-        for (auto s : method.steps(function, 0.0f, ini, 1.5f * distance)) {//1.0f*float(atmosphere_height))) {
+        for (auto s : method.steps(function, 0.0f, ini, 4.0f * distance)) {//1.0f*float(atmosphere_height))) {
             ray.set_range_max(s.step());
             if (auto hit = earth.trace(ray)) {
                 hits_nonlinear_x.push_back((*hit).point()[0]);

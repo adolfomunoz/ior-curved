@@ -21,11 +21,7 @@ int main(int argc, char** argv) {
     // Scene
     const double radius = 6370949; // Earth radius
     tracer::Sphere earth(Eigen::Vector3f(0,0,0),radius);
-    double atmosphere_height = -10+12/cos(angle); // Km
-    for (int i = 0; i<(argc-1); ++i) { // Custom angle as argument
-        if (std::string(argv[i]) == "-height") atmosphere_height = atof(argv[++i]);
-    }
-    printf("Atmosphere height: %f km\n", atmosphere_height);
+
     auto ior = [=] (float x, float y, float z) { // Index of Refraction
         float h = std::sqrt(x*x + y*y + z*z) - radius; // h = zv
         return 1.0f + 1.e-6*325*std::exp(-0.00012180 * h);
@@ -44,31 +40,25 @@ int main(int argc, char** argv) {
     for (float ze = min_zenith; ze < max_zenith; ze += zenith_step) {
         printf("\nZenith: %f\n", ze);
         float zenith = ze * M_PI/180;
+        //zeniths.push_back(1/std::cos(zenith));
         zeniths.push_back(ze);
-        //zeniths.push_back(1/cos(zenith));
 
         /** Get atmosphere border (origin of the ray) from the Earth with the zenith angle */
         //To solve where the origin of the ray is (x,z coordinates) we need to solve an order 2 equation and keep the positive root
-
-        double tana = std::tan(zenith);
-        double tana2 = tana*tana;
-
-        double a = tana2 + 1;
-        double b = -2.0f*radius*tana2;
-        double c = radius*radius*tana2 - (radius+atmosphere_height)*(radius+atmosphere_height);
-
-        float z = (-b + std::sqrt(b*b - 4.0f*a*c))/(2*a);
-        float x = (z-radius)*tana;
+        float distance = (-10 + 12 / std::cos(zenith)) * 1000;
+        float x = distance * std::sin(zenith);
+        float z = ( distance * std::cos(zenith) ) + radius;
+        float atmosphere_height = std::sqrt(x*x + z*z) - radius;
 
         printf("Origin of rays: %f,%f\n", x, z);
         Eigen::Vector3f origin(x,0,z);
-        float distance = std::sqrt((z-radius)*(z-radius)+(x-0)*(x-0)); // distance from origin to north pole
         printf("Distance Origin-North: %f km\n", distance);
+        printf("Atmosphere height: %f km\n", atmosphere_height);
 
         auto function = fermat(ior,dior);
-        IVP::Adaptive<IVP::Dopri> method(100,1.e-3); // (Pasos inicialmente, tolerancia)
-        //IVP::Dopri method(100);
-        //    IVP::Euler method(100);
+        //IVP::Adaptive<IVP::Dopri> method(100,1.e-3); // (Pasos inicialmente, tolerancia)
+        IVP::RungeKutta2 method(2000.0f);
+
 
         /** Cherenkov cone */
         // For -1, 0 and 1 angles
@@ -99,7 +89,7 @@ int main(int argc, char** argv) {
             ini(Eigen::seq(Eigen::fix<0>, Eigen::fix<2>)) = ray.origin();
             ini(Eigen::seq(Eigen::fix<3>, Eigen::fix<5>)) = ray.direction();
             // Trace curved ray towards de Earth
-            for (auto s : method.steps(function, 0.0f, ini, 1.5f * distance)) {//1.0f*float(atmosphere_height))) {
+            for (auto s : method.steps(function, 0.0f, ini, 4.0f * distance)) {//1.0f*float(atmosphere_height))) {
                 ray.set_range_max(s.step());
                 if (auto hit = earth.trace(ray)) {
                     isHit = true;
@@ -119,7 +109,11 @@ int main(int argc, char** argv) {
                 }
             }
             if (isHit) {
-                rhos_diff[i].push_back(rhos_zc[i].back() - rhos_z[i].back());
+                float a = rhos_zc[i].back();
+                float b = rhos_z[i].back();
+                float c = a - b;
+                rhos_diff[i].push_back(c);
+                printf("[%d] Diff (%f - %f = %f)\n", i, a, b, c);
             } else {
                 rhos_diff[i].push_back(-10000);
             }
@@ -148,7 +142,9 @@ int main(int argc, char** argv) {
     plt.ylabel("Distance from hit to Z axis\n\n");
     plt.title("Red: -1 | Green: 0 | Blue: +1 | Continuous: Curved ");
     float max_y = *(std::max_element(rhos_zc[0].begin(),rhos_zc[0].end()));
-    std::array<float,4> limits{79.5,90.5,0,max_y+100};
+    float min_x = *(std::min_element(zeniths.begin(), zeniths.end()));
+    float max_x = *(std::max_element(zeniths.begin(), zeniths.end()));
+    std::array<float,4> limits{min_x,max_x,-50,max_y+100};
     plt.axis(limits).linewidth(0.5).savefig("rho_graph.svg");
 
     printf("Creating diff figure...");
@@ -164,7 +160,10 @@ int main(int argc, char** argv) {
     plt_diff.ylabel("Difference of rho between straight and curved");
     plt_diff.title("Red: -1 | Green: 0 | Blue: +1 ");
     max_y = *(std::max_element(rhos_diff[1].begin(),rhos_diff[1].end()));
-    limits = {79.5,90.5,0,max_y+100};
+    float min_y = *(std::min_element(rhos_diff[2].begin(),rhos_diff[2].end()));
+    min_x = *(std::min_element(zeniths.begin(), zeniths.end()));
+    max_x = *(std::max_element(zeniths.begin(), zeniths.end()));
+    limits = {min_x,max_x,min_y+100,max_y+100};
     plt_diff.axis(limits).linewidth(0.5).savefig("rho_graph_diff.svg");
 
 }
