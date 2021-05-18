@@ -4,7 +4,7 @@
 #include "../eq/fermat.h"
 #include <cmath>
 #include <string>
-// Tested values: -zenith 88 -height 325000 -omega_ch 1
+// Tested values: -zenith 88 -omega_ch 1
 int main(int argc, char** argv) {
     /** Parameters */
     // Plot
@@ -21,11 +21,7 @@ int main(int argc, char** argv) {
     // Scene
     const double radius = 6370949; // Earth radius
     tracer::Sphere earth(Eigen::Vector3f(0,0,0),radius);
-    double atmosphere_height = -10+12/cos(angle); // Km
-    for (int i = 0; i<(argc-1); ++i) { // Custom angle as argument
-        if (std::string(argv[i]) == "-height") atmosphere_height = atof(argv[++i]);
-    }
-    printf("Atmosphere height: %f km\n", atmosphere_height);
+
     auto ior = [=] (float x, float y, float z) { // Index of Refraction
         float h = std::sqrt(x*x + y*y + z*z) - radius; // h = zv
         return 1.0f + 1.e-6*325*std::exp(-0.00012180 * h);
@@ -45,7 +41,6 @@ int main(int argc, char** argv) {
 
     printf("Origin of rays: %f,%f\n", x, z);
     Eigen::Vector3f origin(x,0,z);
-    float distance = std::sqrt((z-radius)*(z-radius)+(x-0)*(x-0)); // distance from origin to north pole
     printf("Distance Origin-North: %f km\n", distance);
     printf("Atmosphere height: %f km\n", atmosphere_height);
 
@@ -104,6 +99,7 @@ int main(int argc, char** argv) {
                 float yb = z - (*hit).point()[2];
                 float omega = std::acos((xa * xb + ya * yb) / (std::sqrt(xa*xa + ya*ya) * std::sqrt(xb*xb + yb*yb)));
                 omegas_c.push_back(omega*(180/M_PI));
+                printf("Curved hit: rho_c: %f | omega_c: %f\n", rhos_c.back(), omega*(180/M_PI));
                 break;
             } else {
                 if (std::abs(s.y()[1]) > 1.e-2)
@@ -127,6 +123,7 @@ int main(int argc, char** argv) {
     plt_zenith.plot(zeniths, rhos_c).linestyle("-").color( "b").linewidth(1);
     plt_zenith.scatter(zeniths,rhos_c).c("b").s(2).alpha(0.5);
     plt_zenith.plot({zeniths.front(),zeniths.back()}, {0,0}).linestyle("-").color( "k").linewidth(1);
+    printf("debug %f", rhos_c.back());
 
     plt_zenith.xlabel("Zenith (degrees)\n");
     plt_zenith.ylabel("Distance from hit to Z axis\n\n");

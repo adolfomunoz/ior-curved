@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
     svg_cpp_plot::SVGPlot plt;
     std::list<float> hits_x, hits_y, nohits_x, nohits_y, hits_nonlinear_x, hits_nonlinear_y;
     for (float a = (angle-omega_ch); a<=(angle+1.5*omega_ch); a+=omega_ch) {
-    //for (float a = angle; a <= angle*1.5; a += angle) {
+        //for (float a = angle; a <= angle*1.5; a += angle) {
         tracer::Ray ray(origin, Eigen::Vector3f(-std::sin(a), 0, -std::cos(a)));
         // Trace ray towards the Earth
         if (auto hit = earth.trace(ray)) {

@@ -4,7 +4,7 @@
 #include "../eq/fermat.h"
 #include <cmath>
 #include <string>
-// Tested values: -zenith 88 -height 325000 -omega_ch 1
+// Tested values: -omega_ch 1
 int main(int argc, char** argv) {
     /** Parameters */
     // Plot
@@ -34,46 +34,45 @@ int main(int argc, char** argv) {
 
     float min_zenith = 80 ;
     float max_zenith = 90 ;
-    float zenith_step = 0.17 ;
+    float zenith_step = 0.1 ;
     std::list<float> zeniths, rhos, rhos_c;
     Eigen::Array<std::list<float>,3,1> rhos_z, rhos_zc, rhos_diff;
     for (float ze = min_zenith; ze < max_zenith; ze += zenith_step) {
         printf("\nZenith: %f\n", ze);
-        float zenith = ze * M_PI/180;
-        //zeniths.push_back(1/std::cos(zenith));
+        float angle = ze * M_PI/180;
         zeniths.push_back(ze);
 
         /** Get atmosphere border (origin of the ray) from the Earth with the zenith angle */
         //To solve where the origin of the ray is (x,z coordinates) we need to solve an order 2 equation and keep the positive root
-        float distance = (-10 + 12 / std::cos(zenith)) * 1000;
-        float x = distance * std::sin(zenith);
-        float z = ( distance * std::cos(zenith) ) + radius;
-        float atmosphere_height = std::sqrt(x*x + z*z) - radius;
+        float distance = (-10 + 12 / std::cos(angle)) * 1000; // x1000 km -> m
+        float x = distance * std::sin(angle);
+        float z = (distance * std::cos(angle)) + radius;
+        float atmosphere_height = std::sqrt(x * x + z * z) - radius;
 
         printf("Origin of rays: %f,%f\n", x, z);
-        Eigen::Vector3f origin(x,0,z);
-        printf("Distance Origin-North: %f km\n", distance);
-        printf("Atmosphere height: %f km\n", atmosphere_height);
+        Eigen::Vector3f origin(x, 0, z);
+        printf("Distance Origin-North: %f m\n", distance);
+        printf("Atmosphere height: %f m\n", atmosphere_height);
 
-        auto function = fermat(ior,dior);
+        auto function = fermat(ior, dior);
         //IVP::Adaptive<IVP::Dopri> method(100,1.e-3); // (Pasos inicialmente, tolerancia)
         IVP::RungeKutta2 method(2000.0f);
 
-
         /** Cherenkov cone */
         // For -1, 0 and 1 angles
-        double omega_ch = 88*M_PI/180.0; //std::acos(1/ior(x,0,z))*M_PI/180.0; //arccos(1/ior)
-        for (int i = 0; i<(argc-1); ++i) { // Custom angle as argument
-            if (std::string(argv[i]) == "-omega_ch") omega_ch = atof(argv[++i])*M_PI/180.0;
+        double omega_ch = 88 * M_PI / 180.0; //std::acos(1/ior(x,0,z))*M_PI/180.0; //arccos(1/ior)
+        for (int i = 0; i < (argc - 1); ++i) { // Custom angle as argument
+            if (std::string(argv[i]) == "-omega_ch") omega_ch = atof(argv[++i]) * M_PI / 180.0;
         }
-        printf("omega_ch: %f degrees\n", omega_ch*(180/M_PI));
+        printf("omega_ch: %f degrees\n", omega_ch * (180 / M_PI));
 
+        /** Plotting */
+        svg_cpp_plot::SVGPlot plt;
+        std::list<float> hits_x, hits_y, nohits_x, nohits_y, hits_nonlinear_x, hits_nonlinear_y;
         int i = 0;
-        for (float angle = (zenith-omega_ch); angle<=(zenith+1.5*omega_ch); angle+=omega_ch) {
+        for (float a = (angle - omega_ch); a <= (angle + 1.5 * omega_ch); a += omega_ch) {
             bool isHit = false;
-            printf("Angle: %f\n", angle);
-            std::list<float> hits_x, hits_y, hits_nonlinear_x, hits_nonlinear_y;
-            tracer::Ray ray(origin, Eigen::Vector3f(-std::sin(angle), 0, -std::cos(angle)));
+            tracer::Ray ray(origin, Eigen::Vector3f(-std::sin(a), 0, -std::cos(a)));
             // Trace ray towards the Earth
             if (auto hit = earth.trace(ray)) {
                 isHit = true;
@@ -82,8 +81,6 @@ int main(int argc, char** argv) {
                 float rho = std::sqrt(((*hit).point()[0] * (*hit).point()[0]));
                 rhos.push_back(rho);
                 rhos_z[i].push_back(rho);
-                //printf("Hit (rho: %f)\n",rho);
-                //printf("Hit: %f,%f (rho: %f)\n", (*hit).point()[0], (*hit).point()[2], rho);
             }
             Eigen::Array<float, 6, 1> ini;
             ini(Eigen::seq(Eigen::fix<0>, Eigen::fix<2>)) = ray.origin();
@@ -92,14 +89,11 @@ int main(int argc, char** argv) {
             for (auto s : method.steps(function, 0.0f, ini, 4.0f * distance)) {//1.0f*float(atmosphere_height))) {
                 ray.set_range_max(s.step());
                 if (auto hit = earth.trace(ray)) {
-                    isHit = true;
                     hits_nonlinear_x.push_back((*hit).point()[0]);
                     hits_nonlinear_y.push_back((*hit).point()[2]);
                     float rho = std::sqrt(((*hit).point()[0] * (*hit).point()[0]));
-                    rhos_c.push_back(rho);
+                    rhos.push_back(rho);
                     rhos_zc[i].push_back(rho);
-                    //printf("Hit Curved (rho: %f)\n",rho);
-                    //printf("Hit Curved: %f,%f (rho: %f)\n", (*hit).point()[0], (*hit).point()[2], rho);
                     break;
                 } else {
                     if (std::abs(s.y()[1]) > 1.e-2)
@@ -114,15 +108,13 @@ int main(int argc, char** argv) {
                 float c = a - b;
                 rhos_diff[i].push_back(c);
                 printf("[%d] Diff (%f - %f = %f)\n", i, a, b, c);
-            } else {
-                rhos_diff[i].push_back(-10000);
             }
 
             i++;
         }
     }
 
-    printf("Creating figure...");
+    printf("Creating figure...\n");
     svg_cpp_plot::SVGPlot plt;
     plt.plot(zeniths, rhos_z[0]).linestyle("--").color( "r").linewidth(1);
     plt.plot(zeniths, rhos_z[1]).linestyle("--").color( "g").linewidth(1);
@@ -147,7 +139,7 @@ int main(int argc, char** argv) {
     std::array<float,4> limits{min_x,max_x,-50,max_y+100};
     plt.axis(limits).linewidth(0.5).savefig("rho_graph.svg");
 
-    printf("Creating diff figure...");
+    printf("Creating diff figure...\n");
     svg_cpp_plot::SVGPlot plt_diff;
     plt_diff.plot(zeniths, rhos_diff[0]).linestyle("-").color( "r").linewidth(1);
     plt_diff.plot(zeniths, rhos_diff[1]).linestyle("-").color( "g").linewidth(1);
@@ -155,6 +147,7 @@ int main(int argc, char** argv) {
     plt_diff.scatter(zeniths,rhos_diff[0]).c("r"); // -1
     plt_diff.scatter(zeniths,rhos_diff[1]).c("g"); // 0
     plt_diff.scatter(zeniths,rhos_diff[2]).c("b"); // 1
+    plt_diff.plot({zeniths.front(),zeniths.back()}, {0,0}).linestyle("-").color( "k").linewidth(1);
 
     plt_diff.xlabel("Zenith (degrees)\n");
     plt_diff.ylabel("Difference of rho between straight and curved");
