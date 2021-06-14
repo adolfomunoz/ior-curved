@@ -33,7 +33,7 @@ int main(int argc, char** argv) {
     };
 
     float min_zenith = 80 ;
-    float max_zenith = 90 ;
+    float max_zenith = 88.05 ;
     float zenith_step = 0.1 ;
     std::list<float> zeniths, rhos, rhos_c;
     Eigen::Array<std::list<float>,3,1> rhos_z, rhos_zc, rhos_diff;
@@ -78,7 +78,7 @@ int main(int argc, char** argv) {
                 isHit = true;
                 hits_x.push_back((*hit).point()[0]);
                 hits_y.push_back((*hit).point()[2]);
-                float rho = std::sqrt(((*hit).point()[0] * (*hit).point()[0]));
+                float rho = (std::sqrt(((*hit).point()[0] * (*hit).point()[0])))/1000; // km
                 rhos.push_back(rho);
                 rhos_z[i].push_back(rho);
             }
@@ -91,7 +91,7 @@ int main(int argc, char** argv) {
                 if (auto hit = earth.trace(ray)) {
                     hits_nonlinear_x.push_back((*hit).point()[0]);
                     hits_nonlinear_y.push_back((*hit).point()[2]);
-                    float rho = std::sqrt(((*hit).point()[0] * (*hit).point()[0]));
+                    float rho = (std::sqrt(((*hit).point()[0] * (*hit).point()[0]))) /1000; // km
                     rhos.push_back(rho);
                     rhos_zc[i].push_back(rho);
                     break;
@@ -106,6 +106,9 @@ int main(int argc, char** argv) {
                 float a = rhos_zc[i].back();
                 float b = rhos_z[i].back();
                 float c = a - b;
+                if (i >= 2) {
+                    c *= -1;
+                }
                 rhos_diff[i].push_back(c);
                 printf("[%d] Diff (%f - %f = %f)\n", i, a, b, c);
             }
@@ -130,13 +133,19 @@ int main(int argc, char** argv) {
     plt.scatter(zeniths,rhos_zc[1]).c("g"); // 0
     plt.scatter(zeniths,rhos_zc[2]).c("b"); // 1
 
+    plt.plot({zeniths.front(),zeniths.back()}, {0,0}).linestyle("-").color( "k").linewidth(1);
+
     plt.xlabel("Zenith (degrees)\n");
-    plt.ylabel("Distance from hit to Z axis\n\n");
+    plt.ylabel("Distance from hit to Z axis (km)\n\n");
     plt.title("Red: -1 | Green: 0 | Blue: +1 | Continuous: Curved ");
-    float max_y = *(std::max_element(rhos_zc[0].begin(),rhos_zc[0].end()));
+    float max_y = *(std::max_element(rhos_z[2].begin(),rhos_z[2].end()));
+    float min_y = *(std::min_element(rhos_zc[1].begin(),rhos_zc[1].end()));
     float min_x = *(std::min_element(zeniths.begin(), zeniths.end()));
     float max_x = *(std::max_element(zeniths.begin(), zeniths.end()));
-    std::array<float,4> limits{min_x,max_x,-50,max_y+100};
+    std::array<float,4> limits{min_x,max_x,0.1,10e2};
+    plt.set_yscale(svg_cpp_plot::symlog).base(10);
+    plt.set_yticks({0,10e-3,10e-2,10e-1,10e0,10e1,10e2});
+    plt.set_xticks({80,80.5,81,81.5,82,82.5,83,83.5,84,84.5,85,85.5,86,86.5,87,87.5,88});
     plt.axis(limits).linewidth(0.5).savefig("rho_graph.svg");
 
     printf("Creating diff figure...\n");
@@ -144,19 +153,23 @@ int main(int argc, char** argv) {
     plt_diff.plot(zeniths, rhos_diff[0]).linestyle("-").color( "r").linewidth(1);
     plt_diff.plot(zeniths, rhos_diff[1]).linestyle("-").color( "g").linewidth(1);
     plt_diff.plot(zeniths, rhos_diff[2]).linestyle("-").color( "b").linewidth(1);
+
     plt_diff.scatter(zeniths,rhos_diff[0]).c("r"); // -1
     plt_diff.scatter(zeniths,rhos_diff[1]).c("g"); // 0
     plt_diff.scatter(zeniths,rhos_diff[2]).c("b"); // 1
     plt_diff.plot({zeniths.front(),zeniths.back()}, {0,0}).linestyle("-").color( "k").linewidth(1);
 
     plt_diff.xlabel("Zenith (degrees)\n");
-    plt_diff.ylabel("Difference of rho between straight and curved");
+    plt_diff.ylabel("Difference of rho between straight and curved (km)");
     plt_diff.title("Red: -1 | Green: 0 | Blue: +1 ");
     max_y = *(std::max_element(rhos_diff[1].begin(),rhos_diff[1].end()));
-    float min_y = *(std::min_element(rhos_diff[2].begin(),rhos_diff[2].end()));
+    min_y = *(std::min_element(rhos_diff[2].begin(),rhos_diff[2].end()));
     min_x = *(std::min_element(zeniths.begin(), zeniths.end()));
     max_x = *(std::max_element(zeniths.begin(), zeniths.end()));
-    limits = {min_x,max_x,min_y+100,max_y+100};
+    //limits = {min_x,max_x,min_y,max_y};
+    limits = {80,88,0,10e1};
+    plt_diff.set_yscale(svg_cpp_plot::symlog).base(10);
+    plt_diff.set_yticks({0,10e-3,10e-2,10e-1,10e0,10e1});
+    plt_diff.set_xticks({80,80.5,81,81.5,82,82.5,83,83.5,84,84.5,85,85.5,86,86.5,87,87.5,88});
     plt_diff.axis(limits).linewidth(0.5).savefig("rho_graph_diff.svg");
-
 }
