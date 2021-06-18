@@ -4,7 +4,10 @@
 #include "../eq/fermat.h"
 #include <cmath>
 #include <string>
-// Tested values: -omega_ch 1
+/**
+ * Plot [Figure 1] and [Figure 2] that shows how distance to the Z axis (rho) changes depending the zenith of the
+ * Cherenkov cone's centre.
+ */
 int main(int argc, char** argv) {
     /** Parameters */
     // Plot
@@ -117,6 +120,9 @@ int main(int argc, char** argv) {
         }
     }
 
+    /**
+     * Figure 1: Distance from hit to Z axis
+     */
     printf("Creating figure...\n");
     svg_cpp_plot::SVGPlot plt;
     plt.plot(zeniths, rhos_z[0]).linestyle("--").color( "r").linewidth(1);
@@ -137,7 +143,7 @@ int main(int argc, char** argv) {
 
     plt.xlabel("Zenith (degrees)\n");
     plt.ylabel("Distance from hit to Z axis (km)\n\n");
-    plt.title("Red: -1 | Green: 0 | Blue: +1 | Continuous: Curved ");
+    plt.title("[Fig1] Red: -1 | Green: 0 | Blue: +1 | Continuous: Curved ");
     float max_y = *(std::max_element(rhos_z[2].begin(),rhos_z[2].end()));
     float min_y = *(std::min_element(rhos_zc[1].begin(),rhos_zc[1].end()));
     float min_x = *(std::min_element(zeniths.begin(), zeniths.end()));
@@ -146,8 +152,11 @@ int main(int argc, char** argv) {
     plt.set_yscale(svg_cpp_plot::symlog).base(10);
     plt.set_yticks({0,10e-3,10e-2,10e-1,10e0,10e1,10e2});
     plt.set_xticks({80,80.5,81,81.5,82,82.5,83,83.5,84,84.5,85,85.5,86,86.5,87,87.5,88});
-    plt.axis(limits).linewidth(0.5).savefig("rho_graph.svg");
+    plt.axis(limits).linewidth(0.5).savefig("Fig1_rho_graph.svg");
 
+    /**
+     * Figure 2: Difference between straight and curved rays in the distance from hit to the Z axis.
+     */
     printf("Creating diff figure...\n");
     svg_cpp_plot::SVGPlot plt_diff;
     plt_diff.plot(zeniths, rhos_diff[0]).linestyle("-").color( "r").linewidth(1);
@@ -161,7 +170,7 @@ int main(int argc, char** argv) {
 
     plt_diff.xlabel("Zenith (degrees)\n");
     plt_diff.ylabel("Difference of rho between straight and curved (km)");
-    plt_diff.title("Red: -1 | Green: 0 | Blue: +1 ");
+    plt_diff.title("[Fig2] Red: -1 | Green: 0 | Blue: +1 ");
     max_y = *(std::max_element(rhos_diff[1].begin(),rhos_diff[1].end()));
     min_y = *(std::min_element(rhos_diff[2].begin(),rhos_diff[2].end()));
     min_x = *(std::min_element(zeniths.begin(), zeniths.end()));
@@ -171,5 +180,5 @@ int main(int argc, char** argv) {
     plt_diff.set_yscale(svg_cpp_plot::symlog).base(10);
     plt_diff.set_yticks({0,10e-3,10e-2,10e-1,10e0,10e1});
     plt_diff.set_xticks({80,80.5,81,81.5,82,82.5,83,83.5,84,84.5,85,85.5,86,86.5,87,87.5,88});
-    plt_diff.axis(limits).linewidth(0.5).savefig("rho_graph_diff.svg");
+    plt_diff.axis(limits).linewidth(0.5).savefig("Fig2_rho_graph_diff.svg");
 }

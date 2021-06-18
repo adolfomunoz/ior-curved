@@ -4,7 +4,10 @@
 #include "../eq/fermat.h"
 #include <cmath>
 #include <string>
-// Tested values: -zenith 88 -omega_ch 1
+/**
+ * Plot [Figure 3], [Figure 4], [Figure 5] and [Figure 6] using rho (distance to the Z axis) of the ray hits inside the
+ * Cherenkov cone.
+ */
 int main(int argc, char** argv) {
     /** Parameters */
     // Plot
@@ -114,7 +117,7 @@ int main(int argc, char** argv) {
     }
 
     /**
-    * Figure 1: Graph with the angle to the Z axis (X axis) and the distance to the Z axis (Y axis)
+    * Figure 3: Graph with the angle to the Z axis (X axis) and the distance to the Z axis (Y axis)
     */
     printf("Creating Zenith figure...\n");
     svg_cpp_plot::SVGPlot plt_zenith;
@@ -133,10 +136,10 @@ int main(int argc, char** argv) {
     float max_x = *(std::max_element(zeniths.begin(),zeniths.end()));
     float max_y = *(std::max_element(rhos.begin(),rhos.end()));
     std::array<float,4> limits{min_x,max_x,min_y,max_y};
-    plt_zenith.axis(limits).linewidth(1).savefig("rho_ch_cone_zenith.svg");
+    plt_zenith.axis(limits).linewidth(1).savefig("Fig3_rho_ch_cone_zenith.svg");
 
     /**
-     * Figure 2: Graph with the ray (-1, 0, 1) (X axis) and angle to the normal (Y axis)
+     * Figure 4: Graph with the ray (-1, 0, 1) (X axis) and angle to the normal (Y axis)
      */
     printf("Creating Normal figure...\n");
     svg_cpp_plot::SVGPlot plt_normal;
@@ -148,16 +151,16 @@ int main(int argc, char** argv) {
 
     plt_normal.xlabel("Cherenkov ray\n");
     plt_normal.ylabel("Angle to the normal (degrees)\n\n");
-    plt_normal.title("Red: Hits of straight rays | Blue: Hits of curved rays\n");
+    plt_normal.title("[Fig4] Red: Hits of straight rays | Blue: Hits of curved rays\n");
     min_x = *(std::min_element(angles.begin(),angles.end()));
     min_y = *(std::min_element(omegas.begin(),omegas.end()));
     max_x = *(std::max_element(angles.begin(),angles.end()));
     max_y = *(std::max_element(omegas.begin(),omegas.end()));
     limits = {min_x,max_x,min_y,max_y};
-    plt_normal.axis(limits).linewidth(1).savefig("rho_ch_cone_normal.svg");
+    plt_normal.axis(limits).linewidth(1).savefig("Fig4_rho_ch_cone_normal.svg");
 
     /**
-     * Figure 3: Graph with angle to the Z axis (X axis) and difference between rays of the distance to the
+     * Figure 5: Graph with angle to the Z axis (X axis) and difference between rays of the distance to the
      * Z axis (rho) (Y axis)
      */
     printf("Creating Zenith Diff figure...\n");
@@ -173,10 +176,10 @@ int main(int argc, char** argv) {
     max_x = *(std::max_element(zeniths.begin(),zeniths.end()));
     max_y = *(std::max_element(rhos_diff.begin(),rhos_diff.end()));
     limits = {min_x,max_x,min_y,max_y};
-    plt_zenith_d.axis(limits).linewidth(1).savefig("rho_ch_cone_zenith_diff.svg");
+    plt_zenith_d.axis(limits).linewidth(1).savefig("Fig5_rho_ch_cone_zenith_diff.svg");
 
     /**
-     * Figure 4: Graph with angle to the normal (X axis) and distance to the Z axis (rho) (Y axis)
+     * Figure 6: Graph with angle to the normal (X axis) and distance to the Z axis (rho) (Y axis)
      */
     printf("Creating Normal 2 figure...\n");
     svg_cpp_plot::SVGPlot plt_normal_2;
@@ -193,7 +196,7 @@ int main(int argc, char** argv) {
     max_x = *(std::max_element(omegas.begin(),omegas.end()));
     max_y = *(std::max_element(rhos.begin(),rhos.end()));
     limits = {min_x,max_x,min_y,max_y};
-    plt_normal_2.axis(limits).linewidth(1).savefig("rho_ch_cone_normal_2.svg");
+    plt_normal_2.axis(limits).linewidth(1).savefig("Fig6_rho_ch_cone_normal_2.svg");
 
 
 }

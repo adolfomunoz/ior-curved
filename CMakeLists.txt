@@ -26,3 +26,8 @@ add_dependencies(rho_ch_cone_graph eigen svg-cpp-plot ivp mj2)
 target_link_libraries(rho_ch_cone_graph ${svg_cpp_plot_libs})
 target_compile_definitions(rho_ch_cone_graph PRIVATE ${svg_cpp_plot_defs})
 
+add_executable(3d_cone_graph main/3d_cone_graph.cc)
+add_dependencies(3d_cone_graph eigen svg-cpp-plot ivp mj2)
+target_link_libraries(3d_cone_graph ${svg_cpp_plot_libs})
+target_compile_definitions(3d_cone_graph PRIVATE ${svg_cpp_plot_defs})
+
