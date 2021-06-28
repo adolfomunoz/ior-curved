@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
 
     /** Cherenkov cone */
     // For -1, 0 and 1 angles
-    double omega_ch = 88*M_PI/180.0; //std::acos(1/ior(x,0,z))*M_PI/180.0; //arccos(1/ior)
+    double omega_ch = 1*M_PI/180.0; //std::acos(1/ior(x,0,z))*M_PI/180.0; //arccos(1/ior)
     for (int i = 0; i<(argc-1); ++i) { // Custom angle as argument
         if (std::string(argv[i]) == "-omega_ch") omega_ch = atof(argv[++i])*M_PI/180.0;
     }

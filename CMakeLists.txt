@@ -31,3 +31,8 @@ add_dependencies(3d_cone_graph eigen svg-cpp-plot ivp mj2)
 target_link_libraries(3d_cone_graph ${svg_cpp_plot_libs})
 target_compile_definitions(3d_cone_graph PRIVATE ${svg_cpp_plot_defs})
 
+add_executable(atmosphere_cone main/atmosphere_cone.cc)
+add_dependencies(atmosphere_cone eigen svg-cpp-plot ivp mj2)
+target_link_libraries(atmosphere_cone ${svg_cpp_plot_libs})
+target_compile_definitions(atmosphere_cone PRIVATE ${svg_cpp_plot_defs})
+

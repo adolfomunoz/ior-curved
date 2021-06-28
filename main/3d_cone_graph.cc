@@ -1,6 +1,7 @@
 #include <svg-cpp-plot/svg-cpp-plot.h>
 #include <ivp/ivp.h>
 #include <mj2/tracer/primitives/sphere.h>
+#include <mj2/tracer/primitives/plane.h>
 #include "../eq/fermat.h"
 #include <cmath>
 #include <string>
@@ -52,7 +53,7 @@ int main(int argc, char** argv) {
 
     /** Cherenkov cone */
     // For -1, 0 and 1 angles
-    double omega_ch = 88*M_PI/180.0;
+    double omega_ch = 1*M_PI/180.0;
     for (int i = 0; i<(argc-1); ++i) { // Custom angle as argument
         if (std::string(argv[i]) == "-omega_ch") omega_ch = atof(argv[++i])*M_PI/180.0;
     }
@@ -108,11 +109,10 @@ int main(int argc, char** argv) {
             hits_x.push_back((*hit).point()[0]);
             hits_y.push_back((*hit).point()[1]);
             hits_z.push_back((*hit).point()[2]);
-            //printf("Hit: X:%f Y:%f Z:%f (Zr:%f)\n", (*hit).point()[0], (*hit).point()[1], (*hit).point()[2], (*hit).point()[2]-radius);
+            printf("Hit: X:%f Y:%f Z:%f (Zr:%f) (%f)\n", (*hit).point()[0], (*hit).point()[1], (*hit).point()[2], (*hit).point()[2]-radius, std::sqrt(((*hit).point()[0]*(*hit).point()[0])+((*hit).point()[1]*(*hit).point()[1])+((*hit).point()[2]*(*hit).point()[2]))-radius);
         }
 
         Eigen::Array<float, 6, 1> ini;
-        ray = center_ray;
         ini(Eigen::seq(Eigen::fix<0>, Eigen::fix<2>)) = ray.origin();
         ini(Eigen::seq(Eigen::fix<3>, Eigen::fix<5>)) = ray.direction();
         // Trace curved ray towards de Earth
@@ -125,7 +125,7 @@ int main(int argc, char** argv) {
                 printf("Curved hit: X:%f Y:%f Z:%f (Zr:%f)\n", (*hit).point()[0], (*hit).point()[1], (*hit).point()[2], (*hit).point()[2]-radius);
                 break;
             } else {
-                //printf("No hit: X:%f Y:%f Z:%f (Zr:%f)\n", s.y()[0], s.y()[1], s.y()[2], s.y()[2]-radius);
+                //printf("No hit: X:%f Y:%f Z:%f (Zr:%f) (%f)\n", s.y()[0], s.y()[1], s.y()[2], s.y()[2]-radius, std::sqrt((s.y()[0]*s.y()[0])+(s.y()[1]*s.y()[1])+(s.y()[2]*s.y()[2]))-radius);
             }
         }
     }
@@ -145,8 +145,8 @@ int main(int argc, char** argv) {
     plt_xy.plot(hits_x, hits_y).linestyle("-").color( "r").linewidth(1);
     plt_xy.scatter(hits_x,hits_y).c("r").s(2).alpha(0.5);
     // Plot curved hits with the planet (X and Y axis)
-    //plt_xy.plot(hits_nonlinear_x, hits_nonlinear_y).linestyle("-").color( "b").linewidth(1);
-    //plt_xy.scatter(hits_nonlinear_x,hits_nonlinear_y).c("b").s(2).alpha(0.5);
+    plt_xy.plot(hits_nonlinear_x, hits_nonlinear_y).linestyle("-").color( "b").linewidth(1);
+    plt_xy.scatter(hits_nonlinear_x,hits_nonlinear_y).c("b").s(2).alpha(0.5);
     // Plot limits (squared)
     float max_y = *(std::max_element(hits_y.begin(),hits_y.end()));
     float max_x = *(std::max_element(hits_x.begin(), hits_x.end()));
