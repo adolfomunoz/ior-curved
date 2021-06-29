@@ -96,7 +96,7 @@ int main(int argc, char** argv) {
     std::list<float> zeniths, angles, omegas, omegas_c, rhos, rhos_c, rhos_diff;
     std::list<float> hits_x, hits_y, hits_z, hits_nonlinear_x, hits_nonlinear_y, hits_nonlinear_z, nohits_x, nohits_y, path_x, path_y, path_z, nohits_z;
     std::list<float> xc,yc,zc;
-    for (float c = 0; c < 2*M_PI; c += M_PI/4) {
+    for (float c = 0; c < 2*M_PI; c += M_PI/32) {
         // Cone calculation
         Eigen::Vector3f v = Eigen::Vector3f(std::cos(omega_ch),std::sin(omega_ch)*std::cos(c),std::sin(omega_ch)*std::sin(c));
         //printf("v: %f, %f, %f\n", v[0], v[1], v[2]);
@@ -151,7 +151,8 @@ int main(int argc, char** argv) {
                 path_y.push_back(s.y()[1]);
                 path_z.push_back(s.y()[2]);
                 //printf("No hit: X:%f Y:%f Z:%f (Zr:%f) (%f)\n", s.y()[0], s.y()[1], s.y()[2], s.y()[2]-radius, std::sqrt((s.y()[0]*s.y()[0])+(s.y()[1]*s.y()[1])+(s.y()[2]*s.y()[2]))-radius);
-
+                ray = tracer::Ray(s.y()(Eigen::seq(Eigen::fix<0>, Eigen::fix<2>)),
+                                  s.y()(Eigen::seq(Eigen::fix<3>, Eigen::fix<5>)));
             }
         }
         // Plot curved ray from origin towards Earth
@@ -191,7 +192,7 @@ int main(int argc, char** argv) {
     for (ie = nohits_x.begin(), je = nohits_y.begin(); (ie != nohits_x.end()) && (je != nohits_y.end()); ++ie, ++je)
         pltxy.plot({x,*ie},{y,*je}).color("k").linewidth(0.25).format("--");
 
-    pltxy.scatter(hits_x,hits_y).c("k"); // Plot point where ray intersect Earth
+    pltxy.scatter(hits_x,hits_y).c("b"); // Plot point where ray intersect Earth
     pltxy.scatter(hits_nonlinear_x,hits_nonlinear_y).c("r"); // Plot point where curved ray intersect Earth
     pltxy.scatter({x}, {y}).c("g"); // Plot origin of the rays
 
@@ -226,10 +227,10 @@ int main(int argc, char** argv) {
 
     // Plot rays from origin towards Earth as discontinued line
 
-    for (ie = hits_x.begin(), je = hits_z.begin(); (ie != hits_x.end()) && (je != hits_z.end()); ++ie, ++je)
-        pltxz.plot({x,*ie},{z,*je}).color("k").linewidth(0.25).format("--");
-    for (ie = nohits_x.begin(), je = nohits_z.begin(); (ie != nohits_x.end()) && (je != nohits_z.end()); ++ie, ++je)
-        pltxz.plot({x,*ie},{z,*je}).color("k").linewidth(0.25).format("--");
+    //for (ie = hits_x.begin(), je = hits_z.begin(); (ie != hits_x.end()) && (je != hits_z.end()); ++ie, ++je)
+    //    pltxz.plot({x,*ie},{z,*je}).color("k").linewidth(0.25).format("--");
+    //for (ie = nohits_x.begin(), je = nohits_z.begin(); (ie != nohits_x.end()) && (je != nohits_z.end()); ++ie, ++je)
+    //    pltxz.plot({x,*ie},{z,*je}).color("k").linewidth(0.25).format("--");
 
     pltxz.scatter(hits_x,hits_z).c("k"); // Plot point where ray intersect Earth
     pltxz.scatter(hits_nonlinear_x,hits_nonlinear_z).c("r"); // Plot point where curved ray intersect Earth
