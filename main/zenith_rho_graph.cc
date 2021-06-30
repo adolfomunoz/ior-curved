@@ -240,10 +240,6 @@ int main(int argc, char** argv) {
     plt_t.scatter(zeniths,flights[1]).c("g"); // 0
     plt_t.scatter(zeniths,flights[2]).c("b"); // 1
 
-    for (float e : flights[0]) {
-        std::cout << e << "\n";
-    }
-
     plt_t.plot(zeniths, flights_c[0]).linestyle("-").color( "r").linewidth(1);
     plt_t.plot(zeniths, flights_c[1]).linestyle("-").color( "g").linewidth(1);
     plt_t.plot(zeniths, flights_c[2]).linestyle("-").color( "b").linewidth(1);
