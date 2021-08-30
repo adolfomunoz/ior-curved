@@ -1,7 +1,3 @@
-//
-// Created by workccu on 28/06/2021.
-//
-
 #include <svg-cpp-plot/svg-cpp-plot.h>
 #include <ivp/ivp.h>
 #include <mj2/tracer/primitives/sphere.h>
@@ -87,9 +83,29 @@ int main(int argc, char** argv) {
     Eigen::Vector3f dir_c = m * Eigen::Vector3f(1, 0, 0);
     printf("Center ray direction: %f, %f, %f\n", dir_c[0], dir_c[1], dir_c[2]);
     tracer::Ray center_ray(origin, dir_c);
+    Eigen::Vector3f center_hit;
     if (auto hit = earth.trace(center_ray)) {
+        center_hit = Eigen::Vector3f((*hit).point()[0], (*hit).point()[1], (*hit).point()[2]);
         printf("Center Hit: X:%f Y:%f Z:%f\n", (*hit).point()[0], (*hit).point()[1], (*hit).point()[2]);
-        printf("Center Hit (z=z-radius): X:%f Y:%f Z:%f\n", (*hit).point()[0], (*hit).point()[1], (*hit).point()[2]-radius);
+        printf("Center Hit (z=z-radius): X:%f Y:%f Z:%f\n", (*hit).point()[0], (*hit).point()[1],
+               (*hit).point()[2] - radius);
+    }
+    Eigen::Array<float, 6, 1> ini;
+    ini(Eigen::seq(Eigen::fix<0>, Eigen::fix<2>)) = center_ray.origin();
+    ini(Eigen::seq(Eigen::fix<3>, Eigen::fix<5>)) = center_ray.direction();
+    Eigen::Vector3f center_hit_c;
+    // Trace curved ray towards de Earth
+    for (auto s : method.steps(function, 0.0f, ini, 4.0f * distance)) {//1.0f*float(atmosphere_height))) {
+        center_ray.set_range_max(s.step());
+        if (auto hit = earth.trace(center_ray)) {
+            center_hit_c = Eigen::Vector3f((*hit).point()[0], (*hit).point()[1], (*hit).point()[2]);
+            printf("Center curved hit: X:%f Y:%f Z:%f (Zr:%f)\n", (*hit).point()[0], (*hit).point()[1],
+                   (*hit).point()[2], (*hit).point()[2] - radius);
+            break;
+        } else {
+            center_ray = tracer::Ray(s.y()(Eigen::seq(Eigen::fix<0>, Eigen::fix<2>)),
+                                     s.y()(Eigen::seq(Eigen::fix<3>, Eigen::fix<5>)));
+        }
     }
 
     svg_cpp_plot::SVGPlot pltxy, pltxz;
@@ -110,10 +126,12 @@ int main(int argc, char** argv) {
         tracer::Ray ray(origin, dir);
         std::cout << "Straight ray origin:\n" << ray.origin() << "\n";
         std::cout << "Straight ray direction:\n" << ray.direction() << "\n";
+        Eigen::Vector3f hit_s;
         if (auto hit = earth.trace(ray)) {
             hits_x.push_back((*hit).point()[0]);
             hits_y.push_back((*hit).point()[1]);
             hits_z.push_back((*hit).point()[2]);
+            hit_s = Eigen::Vector3f((*hit).point()[0],(*hit).point()[1],(*hit).point()[2]);
             printf("Hit: X:%f Y:%f Z:%f (Zr:%f) (%f)\n", (*hit).point()[0], (*hit).point()[1], (*hit).point()[2], (*hit).point()[2]-radius, std::sqrt(((*hit).point()[0]*(*hit).point()[0])+((*hit).point()[1]*(*hit).point()[1])+((*hit).point()[2]*(*hit).point()[2]))-radius);
         } else {
             auto point = ray.at(radius);
@@ -134,6 +152,11 @@ int main(int argc, char** argv) {
             if (!debug) {
                 //std::cout << "Curved ray direction:\n" << ray.direction() << "\n";
                 debug = false;
+            }
+            float distance_to_hit = std::sqrt((hit_s[0]-s.y()[0])*(hit_s[0]-s.y()[0])+(hit_s[1]-s.y()[1])*(hit_s[1]-s.y()[1])+(hit_s[2]-s.y()[2])*(hit_s[2]-s.y()[2]));
+            //std::cout << "Distance to the straight hit: " << distance << "\n";
+            if (distance_to_hit < 3000) {
+                //std::cout << "Distance to the straight hit: " << distance_to_hit << "\n";
             }
             if (auto hit = earth.trace(ray)) {
                 hits_nonlinear_x.push_back((*hit).point()[0]);
@@ -158,8 +181,8 @@ int main(int argc, char** argv) {
         // Plot curved ray from origin towards Earth
         //pltxy.plot(path_x,path_y).color("r").linewidth(0.25);
         //pltxz.plot(path_x,path_z).color("r").linewidth(0.25);
-        pltxy.scatter(path_x,path_y).c("r").s(0.2); // Using scatters because plot causing unwanted "return to origin" lines. Need to see this TODO
-        pltxz.scatter(path_x,path_z).c("r").s(0.2);
+        //pltxy.scatter(path_x,path_y).c("r").s(0.2); // Using scatters because plot causing unwanted "return to origin" lines. Need to see this TODO
+        //pltxz.scatter(path_x,path_z).c("r").s(0.2);
 
     }
 
@@ -195,6 +218,7 @@ int main(int argc, char** argv) {
     pltxy.scatter(hits_x,hits_y).c("b"); // Plot point where ray intersect Earth
     pltxy.scatter(hits_nonlinear_x,hits_nonlinear_y).c("r"); // Plot point where curved ray intersect Earth
     pltxy.scatter({x}, {y}).c("g"); // Plot origin of the rays
+    pltxy.scatter({center_hit_c[0]}, {center_hit_c[1]}).c("b").s(2);
 
 
     // Create figure and save it.

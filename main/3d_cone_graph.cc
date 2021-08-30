@@ -4,67 +4,87 @@
 #include "../eq/fermat.h"
 #include <cmath>
 #include <string>
+
+#include "../atmospheres/simple.h"
+#include "../atmospheres/strange.h"
+
 /**
  * Plot [Figure 7] that shows in overhead view (XY axis) the hits of the Cherenkov cone using the three dimensions.
  */
 int main(int argc, char** argv) {
-    /** Parameters */
-    // Plot
-    float width = 200;
-    float height = 200;
+    /** Initialization */
+    /** Avaiable parameters:
+     * -omega_ch <omega_ch> // Cherenkov angle
+     */
 
-    // Rays
-    double angle = 88*M_PI/180.0; // Zenith angle to radians
+    float width = 200; // Plot width
+    float height = 200; // Plot height
+    const double radius = 6370949; // Earth radius (m)
+    const float detector_height = 0; // Meters adobe radius
+    const float method_steps = 1000.0f; // Steps for the numeric method
+    auto zeniths = {87.6}; //{82,83,84,85,86};
+    auto alphas = Eigen::Vector<float,5>(1.0,0.8,0.6,0.4,0.2); // Alpha value for each zenith plotted
+
+    auto ior = [=] (float x, float y, float z) { // Index of Refraction
+        auto atmosphere = Simple(radius);
+        return atmosphere.ior(x,y,z);
+    };
+    auto dior = [=] (float x, float y, float z) { // IOR gradient
+        auto atmosphere = Simple(radius);
+        return atmosphere.dior(x,y,z);
+    };
+
+    // Numeric Method for fermat solving
+    auto function = fermat(ior,dior);
+    IVP::RungeKutta2 method(method_steps);
+
+    // Zenith
+    float angle = 88*M_PI/180.0; // Default
     for (int i = 0; i<(argc-1); ++i) { // Custom angle as argument
         if (std::string(argv[i]) == "-zenith") angle = atof(argv[++i])*M_PI/180.0;
     }
-    printf("Zenith: %f degrees\n", angle*(180/M_PI));
 
     // Scene
-    const double radius = 6370949; // Earth radius (m)
     tracer::Sphere earth(Eigen::Vector3f(0,0,0),radius);
+    tracer::Sphere surface(Eigen::Vector3f(0,0,0),radius+detector_height);
 
-    auto ior = [=] (float x, float y, float z) { // Index of Refraction
-        float h = std::sqrt(x*x + y*y + z*z) - radius; // h = zv
-        return 1.0f + 1.e-6*325*std::exp(-0.00012180 * h);
-    };
-    auto dior = [=] (float x, float y, float z) { // IOR gradient
-        float h = std::sqrt(x*x + y*y + z*z) - radius;
-        float k = 1.e-6*325*(-0.00012180)*std::exp(-0.00012180 * h)/std::sqrt(x*x+y*y+z*z);
-        return std::array<float,3>{k*x,k*y,k*z};
-    };
+    // Get atmosphere border (origin of the ray) from the Earth with the zenith angle
+    // [ Inside the loop ]
 
-    auto function = fermat(ior, dior);
-    //IVP::Adaptive<IVP::Dopri> method(100,1.e-3); // (Pasos inicialmente, tolerancia)
-    IVP::RungeKutta2 method(2000.0f);
-
-    /** Cherenkov cone */
-    // For -1, 0 and 1 angles
-    double omega_ch = 1 * M_PI / 180.0;
-    for (int i = 0; i < (argc - 1); ++i) { // Custom angle as argument
-        if (std::string(argv[i]) == "-omega_ch") omega_ch = atof(argv[++i]) * M_PI / 180.0;
+    // Cherenkov cone. For -1, 0 and 1 angles
+    float omega_ch = 1*M_PI/180.0; // Default 1º
+    for (int i = 0; i<(argc-1); ++i) { // Custom angle as argument
+        if (std::string(argv[i]) == "-omega_ch") omega_ch = atof(argv[++i])*M_PI/180.0;
     }
-    printf("omega_ch: %f degrees\n", omega_ch * (180 / M_PI));
+
+    // Print initial information
+    printf("Cherenkov angle: %f degrees\n", omega_ch*(180/M_PI));
+
+
+
+
+
+
+    /** Ray tracing (& path plotting) **/
 
     svg_cpp_plot::SVGPlot plt_xy;
     float g_max_x, g_max_y, g_min_x, g_min_y;
-    auto zeniths = {82,83,84,85,86};
-    auto alphas = Eigen::Vector<float,5>(1.0,0.8,0.6,0.4,0.2);
-
     int alpha = 0;
-    for (int zenith : zeniths) {
-        angle = zenith * M_PI / 180.0;
+    std::list<Eigen::Array<float,3,1>> hits_curved, hits_straight;
+    for (float zenith : zeniths) {
+        printf("Zenith: %f\n", zenith);
+        angle = zenith * (M_PI / 180.0);
 
-        /** Get atmosphere border (origin of the ray) from the Earth with the zenith angle */
-        //To solve where the origin of the ray is (x,z coordinates) we need to solve an order 2 equation and keep the positive root
-        float distance = (-10 + 12 / std::cos(angle)) * 1000; // x1000 km -> m
+        // Get atmosphere border (origin of the ray) from the Earth with the zenith angle
+        float distance = (-23.3f + 19.45f/std::cos(0.99273f*angle)) * 1000; // x1000 km -> m
+        //float distance = 279.86711f * 1000; // Fixed value for testing
         float x = distance * std::sin(angle);
         float y = 0;
-        float z = (distance * std::cos(angle)) + radius;
-        float atmosphere_height = std::sqrt(x * x + z * z) - radius;
+        float z = ( distance * std::cos(angle) ) + radius + detector_height;
+        float atmosphere_height = std::sqrt(x*x + y*y + z*z) - radius;
+        Eigen::Vector3f origin(x,0,z);
 
         printf("Origin of rays: %f,%f\n", x, z);
-        Eigen::Vector3f origin(x, 0, z);
         printf("Distance Origin-North: %f m\n", distance);
         printf("Atmosphere height: %f m\n", atmosphere_height);
 
@@ -96,6 +116,7 @@ int main(int argc, char** argv) {
         printf("Center ray direction: %f, %f, %f\n", dir_c[0], dir_c[1], dir_c[2]);
         tracer::Ray center_ray(origin, dir_c);
         Eigen::Vector3f center_hit;
+
         if (auto hit = earth.trace(center_ray)) {
             center_hit = Eigen::Vector3f((*hit).point()[0], (*hit).point()[1], (*hit).point()[2]);
             printf("Center Hit: X:%f Y:%f Z:%f\n", (*hit).point()[0], (*hit).point()[1], (*hit).point()[2]);
@@ -134,6 +155,7 @@ int main(int argc, char** argv) {
             // Trace ray towards the Earth
             tracer::Ray ray(origin, dir);
             if (auto hit = earth.trace(ray)) {
+                hits_straight.push_back( Eigen::Array<float,3,1>((*hit).point()[0], (*hit).point()[1], (*hit).point()[2]));
                 hits_x.push_back((*hit).point()[0]);
                 hits_y.push_back((*hit).point()[1]);
                 hits_z.push_back((*hit).point()[2]);
@@ -152,10 +174,11 @@ int main(int argc, char** argv) {
             ini(Eigen::seq(Eigen::fix<0>, Eigen::fix<2>)) = ray.origin();
             ini(Eigen::seq(Eigen::fix<3>, Eigen::fix<5>)) = ray.direction();
             // Trace curved ray towards de Earth
-            for (auto s : method.steps(function, 0.0f, ini, 4.0f * distance)) {//1.0f*float(atmosphere_height))) {
+            for (auto s : method.steps(function, 0.0f, ini, 4.0f * distance)) {
                 ray.set_range_max(s.step());
 
                 if (auto hit = earth.trace(ray)) {
+                    hits_curved.push_back( Eigen::Array<float,3,1>((*hit).point()[0], (*hit).point()[1], (*hit).point()[2]));
                     hits_nonlinear_x.push_back((*hit).point()[0]);
                     hits_nonlinear_y.push_back((*hit).point()[1]);
                     hits_nonlinear_z.push_back((*hit).point()[2]);
@@ -181,6 +204,7 @@ int main(int argc, char** argv) {
         for (auto &zz : hits_z) {
             hits_zz.push_back(-(max_z-zz));
         }*/
+
         // Plot straight hits with the planet (X and Y axis)
         plt_xy.plot(hits_x, hits_y).linestyle("-").color("r").linewidth(1).alpha(alphas[alpha]);
         //plt_xy.scatter(hits_x, hits_y).c("r").s(0.5).alpha(0.5);
@@ -189,6 +213,7 @@ int main(int argc, char** argv) {
         plt_xy.plot(hits_nonlinear_x, hits_nonlinear_y).linestyle("-").color("b").linewidth(1).alpha(alphas[alpha]);
         //plt_xy.scatter(hits_nonlinear_x, hits_nonlinear_y).c("b").s(0.5).alpha(0.5);
         plt_xy.scatter({center_hit_c[0]}, {center_hit_c[1]}).c("b").s(2).alpha(alphas[alpha]);
+
         // Plot limits (squared)
         float max_y = *(std::max_element(hits_y.begin(), hits_y.end()));
         float max_x = *(std::max_element(hits_x.begin(), hits_x.end()));
@@ -215,8 +240,22 @@ int main(int argc, char** argv) {
     plt_xy.xlabel("X");
     plt_xy.ylabel("Y");
     plt_xy.title("Intersection with the Earth surface");
-    //plt_zenith.linewidth(1).savefig("3d_cone_graph.svg");
-    //plt_zenith.xticks({}).yticks({}).figsize({500,500}).linewidth(0).savefig("3d_cone_graph.svg");
     plt_xy.axis(limits).figsize({477,500}).linewidth(1).savefig("Fig7_3d_cone_graph.svg");
+
+    /** CSV Data save **/
+    std::ofstream csv_save;
+    csv_save.open ("3d_cone_curved.csv");
+    csv_save << "x,y,z\n";
+    for (auto hit : hits_curved) {
+        csv_save << hit[0] << "," << hit[1] << "," << hit[2] << ",\n";
+    }
+    csv_save.close();
+
+    csv_save.open ("3d_cone_straight.csv");
+    csv_save << "x,y,z\n";
+    for (auto hit : hits_straight) {
+        csv_save << hit[0] << "," << hit[1] << "," << hit[2] << ",\n";
+    }
+    csv_save.close();
 
 }

@@ -4,61 +4,77 @@
 #include "../eq/fermat.h"
 #include <cmath>
 #include <string>
+
+#include "../atmospheres/simple.h"
+#include "../atmospheres/strange.h"
+
 /**
  * Plot [Figure 3], [Figure 4], [Figure 5] and [Figure 6] using rho (distance to the Z axis) of the ray hits inside the
  * Cherenkov cone.
  */
 int main(int argc, char** argv) {
-    /** Parameters */
-    // Plot
-    float width = 200;
-    float height = 50;
+    /** Initialization */
+    /** Avaiable parameters:
+     * -zenith <angle> // Zenith angle
+     * -omega_ch <omega_ch> // Cherenkov angle
+     */
 
-    // Rays
-    double angle = 88*M_PI/180.0; // Zenith angle to radians
+    float width = 200; // Plot width
+    float height = 200; // Plot height
+    const double radius = 6370949; // Earth radius (m)
+    const float detector_height = 0; // Meters adobe radius
+    const float method_steps = 100.0f; // Steps for the numeric method
+
+    auto ior = [=] (float x, float y, float z) { // Index of Refraction
+        auto atmosphere = Simple(radius);
+        return atmosphere.ior(x,y,z);
+    };
+    auto dior = [=] (float x, float y, float z) { // IOR gradient
+        auto atmosphere = Simple(radius);
+        return atmosphere.dior(x,y,z);
+    };
+
+    // Numeric Method for fermat solving
+    auto function = fermat(ior,dior);
+    IVP::RungeKutta2 method(method_steps);
+
+    // Zenith
+    float angle = 88*M_PI/180.0; // Default
     for (int i = 0; i<(argc-1); ++i) { // Custom angle as argument
         if (std::string(argv[i]) == "-zenith") angle = atof(argv[++i])*M_PI/180.0;
     }
-    printf("Zenith: %f degrees\n", angle*(180/M_PI));
 
     // Scene
-    const double radius = 6370949; // Earth radius
     tracer::Sphere earth(Eigen::Vector3f(0,0,0),radius);
+    tracer::Sphere surface(Eigen::Vector3f(0,0,0),radius+detector_height);
 
-    auto ior = [=] (float x, float y, float z) { // Index of Refraction
-        float h = std::sqrt(x*x + y*y + z*z) - radius; // h = zv
-        return 1.0f + 1.e-6*325*std::exp(-0.00012180 * h);
-    };
-    auto dior = [=] (float x, float y, float z) { // IOR gradient
-        float h = std::sqrt(x*x + y*y + z*z) - radius;
-        float k = 1.e-6*325*(-0.00012180)*std::exp(-0.00012180 * h)/std::sqrt(x*x+y*y+z*z);
-        return std::array<float,3>{k*x,k*y,k*z};
-    };
-
-    /** Get atmosphere border (origin of the ray) from the Earth with the zenith angle */
-    //To solve where the origin of the ray is (x,z coordinates) we need to solve an order 2 equation and keep the positive root
-    float distance = (-10 + 12 / std::cos(angle)) * 1000;
+    // Get atmosphere border (origin of the ray) from the Earth with the zenith angle
+    float distance = (-23.3f + 19.45f/std::cos(0.99273f*angle)) * 1000; // x1000 km -> m
     float x = distance * std::sin(angle);
-    float z = ( distance * std::cos(angle) ) + radius;
-    float atmosphere_height = std::sqrt(x*x + z*z) - radius;
-
-    printf("Origin of rays: %f,%f\n", x, z);
+    float y = 0;
+    float z = ( distance * std::cos(angle) ) + radius + detector_height;
+    float atmosphere_height = std::sqrt(x*x + y*y + z*z) - radius;
     Eigen::Vector3f origin(x,0,z);
-    printf("Distance Origin-North: %f km\n", distance);
-    printf("Atmosphere height: %f km\n", atmosphere_height);
 
-    auto function = fermat(ior,dior);
-    //IVP::Adaptive<IVP::Dopri> method(100,1.e-3); // (Initial steps, tolerance)
-    IVP::RungeKutta2 method(2000.0f);
-
-    /** Cherenkov cone */
-    // For -1, 0 and 1 angles
-    double omega_ch = 1*M_PI/180.0;
+    // Cherenkov cone. For -1, 0 and 1 angles
+    float omega_ch = std::acos(1/ior(x,0,z))*M_PI/180.0; // Default
     for (int i = 0; i<(argc-1); ++i) { // Custom angle as argument
         if (std::string(argv[i]) == "-omega_ch") omega_ch = atof(argv[++i])*M_PI/180.0;
     }
-    printf("omega_ch: %f degrees\n", omega_ch*(180/M_PI));
 
+    // Print initial information
+    printf("Zenith: %f degrees\n", angle*(180/M_PI));
+    printf("Cherenkov angle: %f degrees\n", omega_ch*(180/M_PI));
+    printf("Origin of rays: %f,%f\n", x, z);
+    printf("Distance Origin-North: %f m\n", distance);
+    printf("Atmosphere height: %f m\n", atmosphere_height);
+
+
+
+
+
+
+    /** Ray tracing **/
     std::list<float> zeniths, angles, omegas, omegas_c, rhos, rhos_c, rhos_diff;
     float angle_step = 0.03 * M_PI/180.0;
     int i = 0;
