@@ -36,3 +36,8 @@ add_dependencies(atmosphere_cone eigen svg-cpp-plot ivp mj2)
 target_link_libraries(atmosphere_cone ${svg_cpp_plot_libs})
 target_compile_definitions(atmosphere_cone PRIVATE ${svg_cpp_plot_defs})
 
+add_executable(height_graph main/height_graph.cc)
+add_dependencies(height_graph eigen svg-cpp-plot ivp mj2)
+target_link_libraries(height_graph ${svg_cpp_plot_libs})
+target_compile_definitions(height_graph PRIVATE ${svg_cpp_plot_defs})
+
