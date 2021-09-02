@@ -11,6 +11,7 @@
 /**
  * Plot [Figure 1] and [Figure 2] that shows how distance to the Z axis (rho) changes depending the zenith of the
  * Cherenkov cone's centre.
+ * Also plot [Figure 8] with the flight time of the rays.
  */
 int main(int argc, char** argv) {
     /** Initialization */
@@ -110,6 +111,7 @@ int main(int argc, char** argv) {
         }
 
         // Print initial information
+        printf("\nEXECUTION INFORMATION:\n")
         printf("Zenith: %f degrees\n", angle*(180/M_PI));
         printf("Cherenkov angle: %f degrees\n", omega_ch*(180/M_PI));
         printf("Origin of rays: %f,%f\n", x, z);

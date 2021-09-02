@@ -8,6 +8,9 @@
 #include "../atmospheres/simple.h"
 #include "../atmospheres/strange.h"
 
+/**
+ * Generates Figure 9 (ray height as it advances) and Figure 10 (dIOR on ray positios as it advances)
+ */
 int main(int argc, char** argv) {
     /** Initialization */
     /** Avaiable parameters:
@@ -98,7 +101,9 @@ int main(int argc, char** argv) {
         }
     }
 
-    /** Plotting Height graph **/
+    /**
+    * Figure 9: Graph with the height of the ray as it moves in the X-axis (straight centered ray must hit surface in X=0)
+    */
     svg_cpp_plot::SVGPlot plt_height;
     plt_height.scatter(x_points,heights);
 
@@ -113,10 +118,12 @@ int main(int argc, char** argv) {
     plt_height.xlabel("Distance to pole (rho or x-axis)");
     plt_height.ylabel("Height from sea level");
     plt_height.title("Height of the ray coming to the Earth");
-    plt_height.axis({0,40000,0,1000}).figsize({width,height}).savefig("height_graph.svg");
+    plt_height.axis({0,40000,0,1000}).figsize({width,height}).savefig("Fig9_height_graph.svg");
 
 
-    /** Plotting dIOR graph **/
+    /**
+    * Figure 10: Graph with the dIOR value for the ray position as it moves in the X-axis (straight centered ray must hit surface in X=0)
+    */
     svg_cpp_plot::SVGPlot plt_dior;
     plt_dior.scatter(heights,diors);
 
@@ -125,7 +132,7 @@ int main(int argc, char** argv) {
     plt_height.xlabel("Height from the sea level");
     plt_height.ylabel("dIOR");
     plt_height.title("dIOR for a ray coming to the Earth");
-    plt_dior.axis({0,25000, -1e-9,1e-9}).figsize({width,height}).savefig("dior_graph.svg");
+    plt_dior.axis({0,25000, -1e-9,1e-9}).figsize({width,height}).savefig("Fig10_dior_graph.svg");
 
 
 }

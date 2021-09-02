@@ -194,24 +194,15 @@ int main(int argc, char** argv) {
         }
 
         /**
-        * Figure 7: Shows the
+        * Figure 7: Shows the footprint of the cone of rays when they intersect with the surface.
         */
         printf("Creating figure...\n");
-
-        // Use relative to the maximum Z
-        /*float max_z = *(std::max_element(hits_z.begin(), hits_z.end()));
-        std::list<float> hits_zz;
-        for (auto &zz : hits_z) {
-            hits_zz.push_back(-(max_z-zz));
-        }*/
-
         // Plot straight hits with the planet (X and Y axis)
         plt_xy.plot(hits_x, hits_y).linestyle("-").color("r").linewidth(1).alpha(alphas[alpha]);
-        //plt_xy.scatter(hits_x, hits_y).c("r").s(0.5).alpha(0.5);
         plt_xy.scatter({center_hit[0]}, {center_hit[1]}).c("r").s(2).alpha(alphas[alpha]);
+
         // Plot curved hits with the planet (X and Y axis)
         plt_xy.plot(hits_nonlinear_x, hits_nonlinear_y).linestyle("-").color("b").linewidth(1).alpha(alphas[alpha]);
-        //plt_xy.scatter(hits_nonlinear_x, hits_nonlinear_y).c("b").s(0.5).alpha(0.5);
         plt_xy.scatter({center_hit_c[0]}, {center_hit_c[1]}).c("b").s(2).alpha(alphas[alpha]);
 
         // Plot limits (squared)
@@ -219,8 +210,8 @@ int main(int argc, char** argv) {
         float max_x = *(std::max_element(hits_x.begin(), hits_x.end()));
         float min_y = *(std::min_element(hits_y.begin(), hits_y.end()));
         float min_x = *(std::min_element(hits_x.begin(), hits_x.end()));
-        //printf("Eje X: Desde '%f' hasta '%f'\n", min_x, max_x);
-        //printf("Eje Y: Desde '%f' hasta '%f'\n", min_y, max_y);
+        printf("Eje X: Desde '%f' hasta '%f'\n", min_x, max_x);
+        printf("Eje Y: Desde '%f' hasta '%f'\n", min_y, max_y);
 
         g_max_x = std::max(max_x, g_max_x);
         g_min_x = std::min(min_x, g_min_x);

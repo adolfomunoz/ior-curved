@@ -4,7 +4,10 @@
 #include "../eq/fermat.h"
 #include <cmath>
 #include <string>
-// Tested values: -zenith 88 -omega_ch 1
+
+/**
+ * Created for DEBUG: plot the cone of 3d_cone_graph.cc in a perspective like atmosphere.cc
+ */
 int main(int argc, char** argv) {
     /** Parameters */
     // Plot

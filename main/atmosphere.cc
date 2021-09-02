@@ -8,6 +8,9 @@
 #include "../atmospheres/simple.h"
 #include "../atmospheres/strange.h"
 
+/**
+ * Image that shows (side face) the Earth and the path of straight and curved rays towards the surface.
+ */
 int main(int argc, char** argv) {
     /** Initialization */
     /** Avaiable parameters:
@@ -19,7 +22,7 @@ int main(int argc, char** argv) {
     float height = 200; // Plot height
     const double radius = 6370949; // Earth radius (m)
     const float detector_height = 0; // Meters adobe radius
-    const float method_steps = 1000.0f; // Steps for the numeric method
+    const float step_size = 1000.0f; // Size of the steps for the numeric method
 
     auto ior = [=] (float x, float y, float z) { // Index of Refraction
         auto atmosphere = Simple(radius);
@@ -32,7 +35,7 @@ int main(int argc, char** argv) {
 
     // Numeric Method for fermat solving
     auto function = fermat(ior,dior);
-    IVP::RungeKutta2 method(method_steps);
+    IVP::RungeKutta2 method(step_size);
 
     // Zenith
     float angle = 88*M_PI/180.0; // Default
