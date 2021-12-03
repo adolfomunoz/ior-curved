@@ -41,3 +41,13 @@ add_dependencies(height_graph eigen svg-cpp-plot ivp mj2)
 target_link_libraries(height_graph ${svg_cpp_plot_libs})
 target_compile_definitions(height_graph PRIVATE ${svg_cpp_plot_defs})
 
+add_executable(trajectory main/trajectory.cc)
+add_dependencies(trajectory eigen svg-cpp-plot ivp mj2 patterns rapidxml)
+target_link_libraries(trajectory ${svg_cpp_plot_libs})
+target_compile_definitions(trajectory PRIVATE ${svg_cpp_plot_defs})
+
+add_executable(ior main/ior.cc)
+add_dependencies(ior eigen svg-cpp-plot ivp mj2 patterns rapidxml)
+target_link_libraries(ior ${svg_cpp_plot_libs})
+target_compile_definitions(ior PRIVATE ${svg_cpp_plot_defs})
+

@@ -111,7 +111,7 @@ int main(int argc, char** argv) {
         }
 
         // Print initial information
-        printf("\nEXECUTION INFORMATION:\n")
+        printf("\nEXECUTION INFORMATION:\n");
         printf("Zenith: %f degrees\n", angle*(180/M_PI));
         printf("Cherenkov angle: %f degrees\n", omega_ch*(180/M_PI));
         printf("Origin of rays: %f,%f\n", x, z);

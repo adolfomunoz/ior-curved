@@ -55,7 +55,30 @@ ExternalProject_Add(mj2
   CONFIGURE_COMMAND ""
   INSTALL_COMMAND ""
 )
-add_dependencies(update ivp-update)
+add_dependencies(update mj2-update)
+
+ExternalProject_Add(rapidxml
+  GIT_REPOSITORY https://github.com/discord/rapidxml.git
+  SOURCE_DIR ${EXTERNAL_INSTALL_LOCATION}/rapidxml
+  UPDATE_DISCONNECTED 1
+  STEP_TARGETS update
+  BUILD_COMMAND ""
+  CONFIGURE_COMMAND ""
+  INSTALL_COMMAND ""
+)
+add_dependencies(update rapidxml-update)
+
+ExternalProject_Add(patterns
+  GIT_REPOSITORY https://github.com/adolfomunoz/patterns.git
+  SOURCE_DIR ${EXTERNAL_INSTALL_LOCATION}/patterns
+  GIT_TAG origin/main
+  UPDATE_DISCONNECTED 1
+  STEP_TARGETS update
+  BUILD_COMMAND ""
+  CONFIGURE_COMMAND ""
+  INSTALL_COMMAND ""
+)
+add_dependencies(update patterns-update)
 
 ExternalProject_Add(eigen
   GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git

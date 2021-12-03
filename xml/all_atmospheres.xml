@@ -1,0 +1,6 @@
+<atmosphere type="simple" />
+<atmosphere type="strange" />
+<atmosphere type="gutierrez2006" wavelength="500.e-9"/>
+<atmosphere type="gutierrez2006" wavelength="500.e-9">
+    <inversion-layer height="10" variation="40" amplitude="1000"/>
+</atmosphere>

@@ -1,4 +1,9 @@
-class Strange {
+#pragma once
+
+#include "atmosphere.h"
+
+
+class Strange : public pattern::SelfRegisteringReflectable<Strange,AtmosphereBase>  {
     float planet_radius;
 
 private:
@@ -13,7 +18,7 @@ private:
     // (otra para mirar si seguimos por aca:Analysis of the Target Detection Performance of Air-to-Air Airborne Radar Using Long-Range3Propagation Simulation in Abnormal Atmospheric Conditions)
 
     // h in meters
-    float refractivity(float h) {
+    float refractivity(float h) const {
         float a, M, N = 0;
         if (h<275.0) {
             // p1=(0,375) p2=(275,412.5)
@@ -50,7 +55,7 @@ private:
     }
 
     // h in meters
-    float refractivityDerivative(float h) {
+    float refractivityDerivative(float h) const {
         float a, N;
         if(h<275.0) {
             // p1=(0,375) p2=(275,412.5)
@@ -83,18 +88,21 @@ private:
     }
 
 public:
-    Strange(const float planet_radius) : planet_radius(planet_radius) {}
+    Strange(const float planet_radius = 6370949) : planet_radius(planet_radius) {}
 
-    float ior (float x, float y, float z) { // Index of Refraction
+    float ior (float x, float y, float z) const override { // Index of Refraction
         float h = std::sqrt(x*x + y*y + z*z) - planet_radius;
         return 1.0+1.e-6*refractivity(h); // 1.0+1.e-6 for refractivity->IOR
     };
 
-    std::array<float, 3> dior (float x, float y, float z) { // IOR gradient
+    std::array<float, 3> dior (float x, float y, float z) const override { // IOR gradient
         float h = std::sqrt(x*x + y*y + z*z) - planet_radius;
         float k = (1.e-6*refractivityDerivative(h))/std::sqrt(x*x+y*y+z*z); // 1.e-6 factor for drefractivity->dIOR
         return std::array<float,3>{k*x,k*y,k*z};
     };
+    
+    static const char* type_name() { return "strange"; }
+
 
 };
 
