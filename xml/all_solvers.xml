@@ -1,0 +1,4 @@
+<solver type="straight" />
+<solver type="euler" step="500" max-steps="10000"/>
+<solver type="rungekutta2" step="1000" max-steps="5000"/>
+<solver type="rungekutta4" step="2000" max-steps="2500"/>

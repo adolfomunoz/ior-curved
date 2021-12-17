@@ -5,6 +5,8 @@
 class Straight : public pattern::SelfRegisteringReflectable<Straight,SolverBase> {
  
 public:
+    Straight() {} //An empty constructor is required, otherwise it does not work
+    
     std::list<Eigen::Vector3f> trajectory(
         const tracer::Ray& ray, const AtmosphereBase& atmosphere, const tracer::Sphere& surface) const override {
             std::list<Eigen::Vector3f> t;

@@ -4,6 +4,7 @@
 #include <mj2/tracer/primitives/sphere.h>
 #include <optional>
 #include <list>
+#include <patterns/patterns.h>
 
 class SolverBase : public pattern::SelfRegisteringReflectableBase {
 public:
