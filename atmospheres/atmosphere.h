@@ -8,6 +8,8 @@ public:
     static const char* type_name() { return "atmosphere"; }
     virtual float ior (float x, float y, float z) const = 0;
     virtual std::array<float, 3> dior (float x, float y, float z) const = 0;
+    virtual ~AtmosphereBase() = default;
+
 };
 
 class Atmosphere : public pattern::Pimpl<AtmosphereBase> {

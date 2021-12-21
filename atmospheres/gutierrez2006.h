@@ -2,13 +2,34 @@
 
 #include "atmosphere.h"
 
-class InversionLayer : public pattern::Reflectable<InversionLayer> {
+class InversionLayerBase : public pattern::SelfRegisteringReflectableBase {  
+public:
+    virtual float temperature(float h) const = 0;
+    virtual float dtemperature(float h) const = 0;
+    static const char* type_name() { return "inversion-layer"; }
+    virtual ~InversionLayerBase() = default;
+};
+
+class InversionLayer : public pattern::Pimpl<InversionLayerBase> {
+public:
+    using pattern::Pimpl<InversionLayerBase>::Pimpl;
+    using pattern::Pimpl<InversionLayerBase>::operator=;
+    
+    float temperature(float h) const override {
+        return impl()->temperature(h);
+    }
+    float dtemperature(float h) const override {
+        return impl()->dtemperature(h);
+    }
+};
+
+class InversionLayerFermi : public pattern::SelfRegisteringReflectable<InversionLayerFermi,InversionLayerBase> {
     float height, variation, amplitude;
 public:
-    InversionLayer(float height = 0, float variation = 30, float amplitude = 20) :
+    InversionLayerFermi(float height = 0, float variation = 30, float amplitude = 20) :
         height(height), variation(variation), amplitude(amplitude) {}
         
-    static const char* type_name() { return "inversion-layer"; }
+    static const char* type_name() { return "fermi"; }
     auto reflect() { return std::tie(height, variation, amplitude); }
     auto reflect_names() const { return std::tuple("height","variation","amplitude"); }
     
@@ -18,6 +39,25 @@ public:
     
     float dtemperature(float h) const {
         return -(variation*std::exp((h-height)/amplitude))/(amplitude*(1.0f+std::exp((h-height)/amplitude))*(1.0f+std::exp((h-height)/amplitude)));
+    }
+};
+
+class InversionLayerGaussian : public pattern::SelfRegisteringReflectable<InversionLayerGaussian,InversionLayerBase> {
+    float height, variation, amplitude;
+public:
+    InversionLayerGaussian(float height = 0, float variation = 30, float amplitude = 20) :
+        height(height), variation(variation), amplitude(amplitude) {}
+        
+    static const char* type_name() { return "gaussian"; }
+    auto reflect() { return std::tie(height, variation, amplitude); }
+    auto reflect_names() const { return std::tuple("height","variation","amplitude"); }
+    
+    float temperature(float h) const {
+        return variation*std::exp(-(h-height)*(h-height)/(200.0*amplitude));
+    }
+    
+    float dtemperature(float h) const {
+        return -variation*((h-height)/(100.0*amplitude))*std::exp(-(h-height)*(h-height)/(200.0*amplitude));
     }
 };
 
