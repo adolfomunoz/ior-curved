@@ -128,6 +128,9 @@ private:
         return m*pressure(h)/(r*temperature(h));
     }
     float ddensity(float h) const noexcept {
+ //       std::cerr<<"h:"<<h<<"  pressure:"<<pressure(h)<<" dpressure="<<dpressure(h)<<" temperature="<<temperature(h)<<" dtemperature="<<dtemperature(h)<<std::endl;
+ //       std::cerr<<" ddensity="<<((m/r)*(dpressure(h)*temperature(h) - pressure(h)*dtemperature(h))/(temperature(h)*temperature(h)))<<" Numerical ddensity="<<((density(h+1.e-3)-density(h))/1.e-3)<<std::endl;
+ //       std::cin.get();
         return (m/r)*(dpressure(h)*temperature(h) - pressure(h)*dtemperature(h))/(temperature(h)*temperature(h));
     }
     
@@ -146,7 +149,7 @@ private:
     } 
     float dior_height(float h) const noexcept {
         //Gladstone-Dale
-        return ddensity(h)*(ior_base()-1.0f)+1.0f;       
+        return ddensity(h)*(ior_base()-1.0f);       
     }     
     
 
@@ -161,6 +164,8 @@ public:
     std::array<float, 3> dior (float x, float y, float z) const override { // IOR gradient
         float h = std::sqrt(x*x + y*y + z*z) - planet_radius;
         float k = dior_height(h)/std::sqrt(x*x+y*y+z*z); // 1.e-6 factor for drefractivity->dIOR
+   //     std::cerr<<x<<", "<<y<<", "<<z<<" -> "<<k*x<<", "<<k*y<<", "<<k*z<<" vs "<<((ior(x+1.e-1,y,z)-ior(x,y,z))/1.e-1)<<", "<<((ior(x,y+1.e-1,z)-ior(x,y,z))/1.e-1)<<", "<<((ior(x,y,z+1.e-1)-ior(x,y,z))/1.e-1)<<std::endl;
+
         return std::array<float,3>{k*x,k*y,k*z};
     };
     

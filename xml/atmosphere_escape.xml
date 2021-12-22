@@ -1,3 +1,3 @@
 <atmosphere type="gutierrez2006" wavelength="500.e-9">
-    <inversion-layer type="gaussian" height="10" variation="40" amplitude="1000"/>
+    <inversion-layer type="gaussian" height="10" variation="40" amplitude="100"/>
 </atmosphere>
