@@ -10,6 +10,7 @@
 #include "../atmospheres/gutierrez2006.h"
 #include "../solvers/straight.h"
 #include "../solvers/ivp.h"
+#include "../solvers/layered.h"
 
 struct Config : public pattern::Reflectable<Config> {
     float plot_width = 200;
